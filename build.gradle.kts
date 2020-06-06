@@ -78,8 +78,7 @@ repositories {
 dependencies {
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-
-    implementation("com.beust:jcommander:1.78")
+    
     implementation("org.apache.logging.log4j", "log4j-slf4j-impl", "2.12.0")
     implementation("org.apache.logging.log4j",  "log4j-core",  "2.12.0")
     implementation("org.apache.logging.log4j",  "log4j-api",  "2.12.0")
