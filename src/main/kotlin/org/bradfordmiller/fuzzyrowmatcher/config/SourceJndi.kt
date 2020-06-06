@@ -1,5 +1,8 @@
 package org.bradfordmiller.fuzzyrowmatcher.config
 
+import org.apache.commons.lang.NullArgumentException
+import org.slf4j.LoggerFactory
+
 /**
  * A source jndi entity
  *
@@ -16,4 +19,33 @@ data class SourceJndi(
     val context: String,
     val tableQuery: String,
     val hashKeys: MutableSet<String> = mutableSetOf()
-)
+) {
+    val sql by lazy {
+        if (tableQuery.startsWith("SELECT", true)) {
+            tableQuery
+        } else {
+            "SELECT * FROM ${tableQuery}"
+        }
+    }
+}
+
+class Config private constructor(
+    val sourceJndi: SourceJndi
+) {
+    data class ConfigBuilder(
+        private var sourceJndi: SourceJndi? = null
+    ) {
+        companion object {
+            private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
+        }
+
+        fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
+
+        fun build(): Config {
+            val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
+            val config = Config(sourceJndi)
+            logger.trace("Built config object $config")
+            return config
+        }
+    }
+}

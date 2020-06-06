@@ -3,15 +3,18 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
+import org.apache.commons.text.similarity.FuzzyScore
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import org.apache.commons.text.similarity.JaroWinklerSimilarity
-import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi
+import org.apache.commons.text.similarity.LevenshteinDistance
+import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
+import java.util.Locale
 
-class FuzzyRowMatcher {
+class FuzzyRowMatcher(private val config: Config) {
 
     companion object {
         val logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
@@ -20,20 +23,15 @@ class FuzzyRowMatcher {
     fun fuzzyMatch(): Boolean {
 
         val stringDiffPct = 50.0
-        val hashColumns = mutableSetOf("street","city", "state", "zip", "price")
-        val sourceJndi = SourceJndi("RealEstateIn", "default_ds","Sacramentorealestatetransactions", hashColumns)
 
-        val sql by lazy {
-            if (sourceJndi.tableQuery.startsWith("SELECT", true)) {
-                sourceJndi.tableQuery
-            } else {
-                "SELECT * FROM ${sourceJndi.tableQuery}"
-            }
-        }
-
-        val ds = JNDIUtils.getDataSource(sourceJndi.jndiName, sourceJndi.context).left
+        val ds = JNDIUtils.getDataSource(config.sourceJndi.jndiName, config.sourceJndi.context).left
+        val hashColumns = config.sourceJndi.hashKeys
+        val sql = config.sourceJndi.sql
         val jaroDist = JaroWinklerDistance()
         val jaroSim = JaroWinklerSimilarity()
+        val locale = Locale.getDefault()
+        val fuzzy = FuzzyScore(locale)
+        val levenstein = LevenshteinDistance()
 
         var comparisonCount = 0
 
@@ -46,10 +44,12 @@ class FuzzyRowMatcher {
                         while (rs.next()) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             var jaroDistPct = jaroDist.apply(currentRowData, rowData)
+                            var fuzzyScore = levenstein.apply(currentRowData, rowData)
+                            //var fuzzyScore = fuzzy.fuzzyScore(currentRowData, rowData)
                             comparisonCount += 1
-                            logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance")
+                            //logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance")
                             //var jaroSimPct = jaroSim.apply(currentRowData, rowData)
-                            //logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance and $jaroSimPct for Jaro Similar")
+                            logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance and $fuzzyScore for Fuzzy score")
                         }
                         rowIndex += 1
                         logger.info("Cursor moved to row index $rowIndex")
