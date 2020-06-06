@@ -87,9 +87,14 @@ dependencies {
     implementation("com.fasterxml.jackson.core", "jackson-databind", "2.11.0")
     implementation("com.fasterxml.jackson.module", "jackson-module-kotlin", "2.11.0")
     implementation("io.vavr:vavr-kotlin:0.10.2")
+    implementation("org.apache.commons", "commons-text", "1.8")
+    implementation("net.sourceforge.csvjdbc:csvjdbc:1.0.35")
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-
+    api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
+        isTransitive = true
+    }
+    api("org.bradfordmiller:sqlutils:0.0.1")
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.5.1")
