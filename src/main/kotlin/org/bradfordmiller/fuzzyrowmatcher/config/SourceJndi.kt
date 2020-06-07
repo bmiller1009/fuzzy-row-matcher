@@ -30,20 +30,29 @@ data class SourceJndi(
 }
 
 class Config private constructor(
-    val sourceJndi: SourceJndi
+    val sourceJndi: SourceJndi,
+    val jaroWinkler: JaroWinkler?
 ) {
+
+    data class JaroWinkler(
+      val threshold: Double
+    )
+
     data class ConfigBuilder(
-        private var sourceJndi: SourceJndi? = null
+        private var sourceJndi: SourceJndi? = null,
+        private var jaroWinkler: JaroWinkler? = null
     ) {
         companion object {
             private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
         }
 
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
+        fun applyJaro(threshold: Double) = apply {this.jaroWinkler = JaroWinkler(threshold)}
 
         fun build(): Config {
             val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
-            val config = Config(sourceJndi)
+            val jaroWinkler = jaroWinkler
+            val config = Config(sourceJndi, jaroWinkler)
             logger.trace("Built config object $config")
             return config
         }
