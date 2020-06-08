@@ -3,16 +3,12 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
-import org.apache.commons.text.similarity.FuzzyScore
-import org.apache.commons.text.similarity.JaroWinklerDistance
-import org.apache.commons.text.similarity.JaroWinklerSimilarity
-import org.apache.commons.text.similarity.LevenshteinDistance
+import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
-import java.util.Locale
 
 class FuzzyRowMatcher(private val config: Config) {
 
@@ -22,18 +18,16 @@ class FuzzyRowMatcher(private val config: Config) {
 
     fun fuzzyMatch(): Boolean {
 
-        val stringDiffPct = 50.0
-
         val ds = JNDIUtils.getDataSource(config.sourceJndi.jndiName, config.sourceJndi.context).left
         val hashColumns = config.sourceJndi.hashKeys
         val sql = config.sourceJndi.sql
-        val jaroDist = JaroWinklerDistance()
-        val jaroSim = JaroWinklerSimilarity()
-        val locale = Locale.getDefault()
-        val fuzzy = FuzzyScore(locale)
-        val levenstein = LevenshteinDistance()
+        val algoSet = config.algoSet
+        val stringLenPct = config.strLenDeltaPct
 
         var comparisonCount = 0
+        var matches = 0
+
+        logger.info("Beginning fuzzy matching process...")
 
         JNDIUtils.getConnection(ds).use {conn ->
             conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)!!.use { stmt ->
@@ -43,25 +37,29 @@ class FuzzyRowMatcher(private val config: Config) {
                         var currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
                         while (rs.next()) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
-                            var jaroDistPct = jaroDist.apply(currentRowData, rowData)
-                            var fuzzyScore = levenstein.apply(currentRowData, rowData)
-                            //var fuzzyScore = fuzzy.fuzzyScore(currentRowData, rowData)
-                            comparisonCount += 1
-                            //logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance")
-                            //var jaroSimPct = jaroSim.apply(currentRowData, rowData)
-                            logger.info("$currentRowData was compared with $rowData and the score was $jaroDistPct for Jaro Distance and $fuzzyScore for Fuzzy score")
+                            //First check if the row qualifies based on the number of characters in each string
+                            if (!Strings.checkStrLen(rowData, currentRowData, stringLenPct)) {
+                                //logger.info("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
+                                continue
+                            }
+                            algoSet.forEach { algo ->
+                                val score = algo.applyAlgo(rowData, currentRowData)
+                                comparisonCount += 1
+                                if (algo.qualifyThreshold(score)) {
+                                    //Here we'll persist to the database
+                                    logger.info("$currentRowData was compared with $rowData and the score was $score for ${algo.name}")
+                                    matches += 1
+                                }
+                            }
                         }
                         rowIndex += 1
-                        logger.info("Cursor moved to row index $rowIndex")
+                        //logger.info("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated")
+                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $matches successful matches.")
                 }
             }
         }
-
         return true
     }
-
-
 }

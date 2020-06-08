@@ -1,6 +1,10 @@
 package org.bradfordmiller.fuzzyrowmatcher.config
 
 import org.apache.commons.lang.NullArgumentException
+import org.apache.commons.text.similarity.JaroWinklerDistance
+import org.bradfordmiller.fuzzyrowmatcher.algos.Algo
+import org.bradfordmiller.fuzzyrowmatcher.algos.FuzzyScoreSimilarity
+import org.bradfordmiller.fuzzyrowmatcher.algos.JaroDistance
 import org.slf4j.LoggerFactory
 
 /**
@@ -31,28 +35,39 @@ data class SourceJndi(
 
 class Config private constructor(
     val sourceJndi: SourceJndi,
-    val jaroWinkler: JaroWinkler?
+    val strLenDeltaPct: Double,
+    val algoSet: HashSet<Algo<Number>>
 ) {
-
-    data class JaroWinkler(
-      val threshold: Double
-    )
 
     data class ConfigBuilder(
         private var sourceJndi: SourceJndi? = null,
-        private var jaroWinkler: JaroWinkler? = null
+        private var strLenDeltaPct: Double? = null,
+        private var jaroDistance: Algo<Number>? = null,
+        private var fuzzyScore: Algo<Number>? = null
     ) {
         companion object {
             private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
         }
 
+        val algoSet = HashSet<Algo<Number>>()
+
+        private fun addAlgo(algo: Algo<Number>?) {
+            algo?.let {al ->
+                algoSet.add(al)
+            }
+        }
+
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
-        fun applyJaro(threshold: Double) = apply {this.jaroWinkler = JaroWinkler(threshold)}
+        fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistance(threshold) as Algo<Number> }
+        fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarity(threshold) as Algo<Number> }
+        fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
 
         fun build(): Config {
             val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
-            val jaroWinkler = jaroWinkler
-            val config = Config(sourceJndi, jaroWinkler)
+            addAlgo(jaroDistance)
+            addAlgo(fuzzyScore)
+            val strLenDeltaPct = strLenDeltaPct ?: 50.0
+            val config = Config(sourceJndi, strLenDeltaPct, algoSet)
             logger.trace("Built config object $config")
             return config
         }

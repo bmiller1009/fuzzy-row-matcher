@@ -11,10 +11,19 @@ class FuzzyRowMatcherTest {
     fun simpleFuzzyMatch() {
 
         val hashColumns = mutableSetOf("street","city", "state", "zip", "price")
-        val sourceJndi = SourceJndi("RealEstateIn", "default_ds","Sacramentorealestatetransactions", hashColumns)
+        val sourceJndi =
+            SourceJndi(
+                    "RealEstateIn",
+                    "default_ds",
+                    "SELECT * FROM Sacramentorealestatetransactions",
+                    hashColumns
+            )
 
         val config = Config.ConfigBuilder()
                 .sourceJndi(sourceJndi)
+                //.applyJaroDistance(90.0)
+                .applyFuzzyScore(50)
+                .strLenDeltaPct(80.0)
                 .build()
 
         val frm = FuzzyRowMatcher(config)
