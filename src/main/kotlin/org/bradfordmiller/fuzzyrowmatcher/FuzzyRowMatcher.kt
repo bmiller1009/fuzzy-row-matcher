@@ -42,7 +42,7 @@ class FuzzyRowMatcher(private val config: Config) {
                                 //logger.info("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
                                 continue
                             }
-                            algoSet.forEach { algo ->
+                            algoSet.map { algo ->
                                 val score = algo.applyAlgo(rowData, currentRowData)
                                 comparisonCount += 1
                                 if (algo.qualifyThreshold(score)) {
