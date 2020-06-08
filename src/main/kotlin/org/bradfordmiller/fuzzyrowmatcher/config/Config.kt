@@ -36,12 +36,14 @@ data class SourceJndi(
 class Config private constructor(
     val sourceJndi: SourceJndi,
     val strLenDeltaPct: Double,
+    val aggregateScoreResults: Boolean,
     val algoSet: HashSet<Algo<Number>>
 ) {
 
     data class ConfigBuilder(
         private var sourceJndi: SourceJndi? = null,
         private var strLenDeltaPct: Double? = null,
+        private var aggregateScoreResults: Boolean? = null,
         private var jaroDistance: Algo<Number>? = null,
         private var fuzzyScore: Algo<Number>? = null
     ) {
@@ -61,13 +63,15 @@ class Config private constructor(
         fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistance(threshold) as Algo<Number> }
         fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarity(threshold) as Algo<Number> }
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
+        fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
 
         fun build(): Config {
             val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
             addAlgo(jaroDistance)
             addAlgo(fuzzyScore)
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
-            val config = Config(sourceJndi, strLenDeltaPct, algoSet)
+            val aggregateScoreResults = aggregateScoreResults ?: false
+            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, algoSet)
             logger.trace("Built config object $config")
             return config
         }

@@ -4,6 +4,12 @@ import org.apache.commons.text.similarity.FuzzyScore
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import java.util.*
 
+data class AlgoResult(val algoName: String, val qualifies: Boolean, val score: Number, val compareRow: String, val currentRow: String) {
+    override fun toString(): String {
+        return "The result of the algorithm $algoName had a score of $score for string {{{$compareRow}}} and {{{$currentRow}}} which resulted which had a qualification result of $qualifies"
+    }
+}
+
 class Strings {
     companion object {
         fun checkStrLen(compareRow: String, currentRow: String, strLenDeltaPct: Double): Boolean {

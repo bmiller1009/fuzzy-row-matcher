@@ -3,6 +3,7 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
+import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.simplejndiutils.JNDIUtils
@@ -23,9 +24,11 @@ class FuzzyRowMatcher(private val config: Config) {
         val sql = config.sourceJndi.sql
         val algoSet = config.algoSet
         val stringLenPct = config.strLenDeltaPct
+        val algoCount = config.algoSet.size
+        val aggregateResults = config.aggregateScoreResults
 
-        var comparisonCount = 0
-        var matches = 0
+        var comparisonCount = 0L
+        var matches = 0L
 
         logger.info("Beginning fuzzy matching process...")
 
@@ -39,21 +42,29 @@ class FuzzyRowMatcher(private val config: Config) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             //First check if the row qualifies based on the number of characters in each string
                             if (!Strings.checkStrLen(rowData, currentRowData, stringLenPct)) {
-                                //logger.info("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
+                                logger.trace("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
                                 continue
                             }
-                            algoSet.map { algo ->
-                                val score = algo.applyAlgo(rowData, currentRowData)
-                                comparisonCount += 1
-                                if (algo.qualifyThreshold(score)) {
-                                    //Here we'll persist to the database
-                                    logger.info("$currentRowData was compared with $rowData and the score was $score for ${algo.name}")
-                                    matches += 1
+                            val bitVector =
+                                algoSet.map { algo ->
+                                    val score = algo.applyAlgo(rowData, currentRowData)
+                                    AlgoResult(algo.name, algo.qualifyThreshold(score), score, currentRowData, rowData)
                                 }
+                            //Now determine if this match qualifies
+                            val qualifies =
+                              if(aggregateResults) {
+                                  bitVector.filter { bv -> !bv.qualifies }.isEmpty()
+                              } else {
+                                  bitVector.filter {bv -> bv.qualifies }.isNotEmpty()
+                              }
+                            if(qualifies) {
+                                bitVector.forEach{ar -> logger.info(ar.toString())}
                             }
+                            matches += bitVector.filter{bv -> bv.qualifies}.size
+                            comparisonCount += algoCount
                         }
                         rowIndex += 1
-                        //logger.info("Cursor moved to row index $rowIndex")
+                        logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $matches successful matches.")
