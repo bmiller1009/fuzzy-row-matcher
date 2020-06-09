@@ -1,5 +1,6 @@
 package org.bradfordmiller.fuzzyrowmatcher.algos
 
+import org.apache.commons.text.similarity.CosineDistance
 import org.apache.commons.text.similarity.FuzzyScore
 import org.apache.commons.text.similarity.JaroWinklerDistance
 import org.apache.commons.text.similarity.LevenshteinDistance
@@ -45,6 +46,15 @@ class LevenshteinDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Levenshtein
         return levenshteinDistance.apply(compareRow, currentRow)
     }
     override fun qualifyThreshold(incomingThreshold: Int): Boolean {
+        return threshold >= incomingThreshold
+    }
+}
+class CosineDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Cosine Distance") {
+    val cosineDistance by lazy {CosineDistance()}
+    override fun applyAlgo(compareRow: String, currentRow: String): Double {
+        return (cosineDistance.apply(compareRow, currentRow) * 100)
+    }
+    override fun qualifyThreshold(incomingThreshold: Double): Boolean {
         return threshold >= incomingThreshold
     }
 }
