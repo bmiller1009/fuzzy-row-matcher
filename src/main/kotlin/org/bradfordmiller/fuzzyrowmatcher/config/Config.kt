@@ -2,9 +2,8 @@ package org.bradfordmiller.fuzzyrowmatcher.config
 
 import org.apache.commons.lang.NullArgumentException
 import org.apache.commons.text.similarity.JaroWinklerDistance
-import org.bradfordmiller.fuzzyrowmatcher.algos.Algo
-import org.bradfordmiller.fuzzyrowmatcher.algos.FuzzyScoreSimilarity
-import org.bradfordmiller.fuzzyrowmatcher.algos.JaroDistance
+import org.apache.commons.text.similarity.LevenshteinDistance
+import org.bradfordmiller.fuzzyrowmatcher.algos.*
 import org.slf4j.LoggerFactory
 
 /**
@@ -37,6 +36,7 @@ class Config private constructor(
     val sourceJndi: SourceJndi,
     val strLenDeltaPct: Double,
     val aggregateScoreResults: Boolean,
+    val ignoreDupes: Boolean,
     val algoSet: HashSet<Algo<Number>>
 ) {
 
@@ -44,8 +44,10 @@ class Config private constructor(
         private var sourceJndi: SourceJndi? = null,
         private var strLenDeltaPct: Double? = null,
         private var aggregateScoreResults: Boolean? = null,
+        private var ignoreDupes: Boolean? = null,
         private var jaroDistance: Algo<Number>? = null,
-        private var fuzzyScore: Algo<Number>? = null
+        private var fuzzyScore: Algo<Number>? = null,
+        private var levenshteinDistance: Algo<Number>? = null
     ) {
         companion object {
             private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
@@ -60,18 +62,22 @@ class Config private constructor(
         }
 
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
-        fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistance(threshold) as Algo<Number> }
-        fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarity(threshold) as Algo<Number> }
+        fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistanceAlgo(threshold) as Algo<Number> }
+        fun applyLevenshtein(threshold: Int) = apply {this.levenshteinDistance = LevenshteinDistanceAlgo(threshold) as Algo<Number>}
+        fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarAlgo(threshold) as Algo<Number> }
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
         fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
+        fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
 
         fun build(): Config {
             val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
             addAlgo(jaroDistance)
             addAlgo(fuzzyScore)
+            addAlgo(levenshteinDistance)
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
             val aggregateScoreResults = aggregateScoreResults ?: false
-            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, algoSet)
+            val ignoreDupes = ignoreDupes ?: false
+            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, algoSet)
             logger.trace("Built config object $config")
             return config
         }

@@ -3,6 +3,7 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
+import org.apache.commons.codec.digest.DigestUtils
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
@@ -26,9 +27,11 @@ class FuzzyRowMatcher(private val config: Config) {
         val stringLenPct = config.strLenDeltaPct
         val algoCount = config.algoSet.size
         val aggregateResults = config.aggregateScoreResults
+        val ignoreDupes = config.ignoreDupes
 
         var comparisonCount = 0L
         var matches = 0L
+        var duplicates = 0L
 
         logger.info("Beginning fuzzy matching process...")
 
@@ -38,8 +41,16 @@ class FuzzyRowMatcher(private val config: Config) {
                     var rowIndex = 1
                     while(rs.next()) {
                         var currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
+                        var currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         while (rs.next()) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
+                            var rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
+                            if(ignoreDupes && currentRowHash == rowHash) {
+                                //Duplicate row found, skip everything else
+                                duplicates += 1
+                                logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
+                                continue
+                            }
                             //First check if the row qualifies based on the number of characters in each string
                             if (!Strings.checkStrLen(rowData, currentRowData, stringLenPct)) {
                                 logger.trace("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
@@ -58,16 +69,15 @@ class FuzzyRowMatcher(private val config: Config) {
                                   bitVector.filter {bv -> bv.qualifies }.isNotEmpty()
                               }
                             if(qualifies) {
-                                bitVector.forEach{ar -> logger.info(ar.toString())}
+                                bitVector.forEach{ar -> matches += 1; logger.info(ar.toString())}
                             }
-                            matches += bitVector.filter{bv -> bv.qualifies}.size
                             comparisonCount += algoCount
                         }
                         rowIndex += 1
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $matches successful matches.")
+                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $matches successful matches. $duplicates times duplicate values were detected.")
                 }
             }
         }

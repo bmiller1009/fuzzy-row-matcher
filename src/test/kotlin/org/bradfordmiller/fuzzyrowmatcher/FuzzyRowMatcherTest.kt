@@ -21,10 +21,12 @@ class FuzzyRowMatcherTest {
 
         val config = Config.ConfigBuilder()
                 .sourceJndi(sourceJndi)
-                .applyJaroDistance(80.0)
+                .applyJaroDistance(98.0)
+                .applyLevenshtein(5)
                 .applyFuzzyScore(90)
                 .strLenDeltaPct(80.0)
                 .aggregateScoreResults(false)
+                .ignoreDupes(true)
                 .build()
 
         val frm = FuzzyRowMatcher(config)

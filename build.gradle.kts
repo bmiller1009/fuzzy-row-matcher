@@ -93,6 +93,7 @@ dependencies {
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
         isTransitive = true
     }
+    api("commons-codec", "commons-codec","1.12")
     api("org.bradfordmiller:sqlutils:0.0.1")
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")

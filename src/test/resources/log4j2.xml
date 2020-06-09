@@ -5,8 +5,8 @@
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%t] %-5p %c{1}:%L - %msg\n" />
         </Console>
 
-        <RollingFile name="RollingFile" filename="logs/deduper-cli.log"
-                     filepattern="logs/%d{yyyyMMddHHmm}-deduper-cli.log">
+        <RollingFile name="RollingFile" filename="logs/fuzzy-row-matcher.log"
+                     filepattern="logs/%d{yyyyMMddHHmm}-fuzzy-row-matcher.log">
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} [%t] %-5p %c{1}:%L - %msg%n" />
             <Policies>
                 <SizeBasedTriggeringPolicy size="100 MB" />
