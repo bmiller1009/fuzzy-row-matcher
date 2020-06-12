@@ -48,23 +48,19 @@ class Config private constructor(
         private var jaroDistance: Algo<Number>? = null,
         private var fuzzyScore: Algo<Number>? = null,
         private var levenshteinDistance: Algo<Number>? = null,
-        private var cosineDistance: Algo<Number>? = null
+        private var cosineDistance: Algo<Number>? = null,
+        private var hammingDistance: Algo<Number>? = null,
+        private var jaccardDistance: Algo<Number>? = null
     ) {
         companion object {
             private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
         }
 
-        val algoSet = HashSet<Algo<Number>>()
-
-        private fun addAlgo(algo: Algo<Number>?) {
-            algo?.let {al ->
-                algoSet.add(al)
-            }
-        }
-
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
         fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistanceAlgo(threshold) as Algo<Number> }
         fun applyCosineDistance(threshold: Double) = apply{this.cosineDistance = CosineDistanceAlgo(threshold) as Algo<Number>}
+        fun applyHammingDistance(threshold: Int) = apply{this.hammingDistance = HammingDistanceAlgo(threshold) as Algo<Number>}
+        fun applyJaccardDistance(threshold: Double) = apply{this.jaccardDistance = JaroDistanceAlgo(threshold) as Algo<Number>}
         fun applyLevenshtein(threshold: Int) = apply {this.levenshteinDistance = LevenshteinDistanceAlgo(threshold) as Algo<Number>}
         fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarAlgo(threshold) as Algo<Number> }
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
@@ -72,11 +68,22 @@ class Config private constructor(
         fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
 
         fun build(): Config {
+
+            val algoSet = HashSet<Algo<Number>>()
+
+            fun addAlgo(algo: Algo<Number>?) {
+                algo?.let {al ->
+                    algoSet.add(al)
+                }
+            }
+
             val sourceJndi = sourceJndi ?: throw NullArgumentException("Source JNDI must be set")
             addAlgo(jaroDistance)
             addAlgo(fuzzyScore)
             addAlgo(levenshteinDistance)
             addAlgo(cosineDistance)
+            addAlgo(hammingDistance)
+            addAlgo(jaccardDistance)
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
             val aggregateScoreResults = aggregateScoreResults ?: false
             val ignoreDupes = ignoreDupes ?: false

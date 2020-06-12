@@ -1,9 +1,8 @@
 package org.bradfordmiller.fuzzyrowmatcher.algos
 
-import org.apache.commons.text.similarity.CosineDistance
-import org.apache.commons.text.similarity.FuzzyScore
-import org.apache.commons.text.similarity.JaroWinklerDistance
-import org.apache.commons.text.similarity.LevenshteinDistance
+import org.apache.commons.text.similarity.*
+import org.bradfordmiller.fuzzyrowmatcher.config.Config
+import org.slf4j.LoggerFactory
 import java.util.*
 
 data class AlgoResult(val algoName: String, val qualifies: Boolean, val score: Number, val compareRow: String, val currentRow: String) {
@@ -28,6 +27,9 @@ class Strings {
     }
 }
 abstract class Algo<T: Number>(internal val threshold: T, val name: String) {
+    companion object {
+        val logger = LoggerFactory.getLogger(Algo::class.java)
+    }
     abstract fun applyAlgo(compareRow: String, currentRow: String): T
     abstract fun qualifyThreshold(incomingThreshold: T): Boolean
 }
@@ -46,6 +48,36 @@ class LevenshteinDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Levenshtein
         return levenshteinDistance.apply(compareRow, currentRow)
     }
     override fun qualifyThreshold(incomingThreshold: Int): Boolean {
+        return threshold >= incomingThreshold
+    }
+}
+class HammingDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Hamming Distance") {
+    val hammingDistance by lazy {HammingDistance()}
+    override fun applyAlgo(compareRow: String, currentRow: String): Int {
+        val compareRowLen = compareRow.length
+        val currentRowLen = currentRow.length
+        if(compareRowLen == currentRowLen) {
+            val differingLength = hammingDistance.apply(compareRow, currentRow)
+            return compareRowLen - differingLength
+        } else {
+            logger.trace("Hamming Distance algorithm requires strings to be of same length.")
+            return -1
+        }
+    }
+    override fun qualifyThreshold(incomingThreshold: Int): Boolean {
+        if(incomingThreshold == -1) {
+            return false
+        } else {
+            return threshold <= incomingThreshold
+        }
+    }
+}
+class JaccardDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Jaccard Distance") {
+    val jaccardDistance by lazy {JaccardDistance()}
+    override fun applyAlgo(compareRow: String, currentRow: String): Double {
+        return jaccardDistance.apply(compareRow, currentRow)
+    }
+    override fun qualifyThreshold(incomingThreshold: Double): Boolean {
         return threshold >= incomingThreshold
     }
 }
