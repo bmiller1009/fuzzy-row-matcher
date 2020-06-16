@@ -59,7 +59,7 @@ class FuzzyRowMatcher(private val config: Config) {
                             val bitVector =
                                 algoSet.map { algo ->
                                     val score = algo.applyAlgo(rowData, currentRowData)
-                                    AlgoResult(algo.name, algo.qualifyThreshold(score), score, currentRowData, rowData)
+                                    AlgoResult(algo.algoType, algo.qualifyThreshold(score), score, currentRowData, rowData)
                                 }
                             //Now determine if this match qualifies
                             val qualifies =
