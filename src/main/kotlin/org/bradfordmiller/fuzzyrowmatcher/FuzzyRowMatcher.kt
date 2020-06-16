@@ -9,6 +9,7 @@ import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
+import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 
@@ -39,12 +40,18 @@ class FuzzyRowMatcher(private val config: Config) {
             conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)!!.use { stmt ->
                 stmt.executeQuery().use { rs ->
                     var rowIndex = 1
+                    val rsmd = rs.metaData
+                    val rsColumns = SqlUtils.getColumnsFromRs(rsmd)
                     while(rs.next()) {
                         var currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
                         var currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
+                        val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
+                        val currentJson = JSONObject(currentRsMap)
                         while (rs.next()) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             var rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
+                            var rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
+                            var rowJson = JSONObject(rowRsMap)
                             if(ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1

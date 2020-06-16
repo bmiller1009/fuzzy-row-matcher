@@ -88,6 +88,7 @@ dependencies {
     implementation("io.vavr:vavr-kotlin:0.10.2")
     implementation("org.apache.commons", "commons-text", "1.8")
     implementation("net.sourceforge.csvjdbc:csvjdbc:1.0.35")
+    implementation("org.json", "json", "20200518")
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
