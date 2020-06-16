@@ -1,13 +1,21 @@
 package org.bradfordmiller.fuzzyrowmatcher.algos
 
 import org.apache.commons.text.similarity.*
-import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.slf4j.LoggerFactory
 import java.util.*
 
-data class AlgoResult(val algoName: String, val qualifies: Boolean, val score: Number, val compareRow: String, val currentRow: String) {
+enum class AlgoType {
+    JaroDistance,
+    LevenshteinDistance,
+    HammingDistance,
+    JaccardDistance,
+    CosineDistance,
+    FuzzySimilarity
+}
+
+data class AlgoResult(val algoType: AlgoType, val qualifies: Boolean, val score: Number, val compareRow: String, val currentRow: String) {
     override fun toString(): String {
-        return "The result of the algorithm $algoName had a score of $score for string {{{$compareRow}}} and {{{$currentRow}}} which resulted which had a qualification result of $qualifies"
+        return "The result of the algorithm ${algoType.name} had a score of $score for string {{{$compareRow}}} and {{{$currentRow}}} which resulted which had a qualification result of $qualifies"
     }
 }
 
@@ -26,14 +34,14 @@ class Strings {
         }
     }
 }
-abstract class Algo<T: Number>(internal val threshold: T, val name: String) {
+abstract class Algo<T: Number>(internal val threshold: T, val algoType: AlgoType) {
     companion object {
         val logger = LoggerFactory.getLogger(Algo::class.java)
     }
     abstract fun applyAlgo(compareRow: String, currentRow: String): T
     abstract fun qualifyThreshold(incomingThreshold: T): Boolean
 }
-class JaroDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Jaro Distance") {
+class JaroDistanceAlgo(threshold: Double): Algo<Double>(threshold, AlgoType.JaroDistance) {
     val jaroWinkler by lazy {JaroWinklerDistance()}
     override fun applyAlgo(compareRow: String, currentRow: String): Double {
         return (jaroWinkler.apply(compareRow, currentRow) * 100)
@@ -42,7 +50,7 @@ class JaroDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Jaro Distanc
         return incomingThreshold >= threshold
     }
 }
-class LevenshteinDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Levenshtein Distance") {
+class LevenshteinDistanceAlgo(threshold: Int): Algo<Int>(threshold, AlgoType.LevenshteinDistance) {
     val levenshteinDistance by lazy {LevenshteinDistance()}
     override fun applyAlgo(compareRow: String, currentRow: String): Int {
         return levenshteinDistance.apply(compareRow, currentRow)
@@ -51,7 +59,7 @@ class LevenshteinDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Levenshtein
         return threshold >= incomingThreshold
     }
 }
-class HammingDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Hamming Distance") {
+class HammingDistanceAlgo(threshold: Int): Algo<Int>(threshold, AlgoType.HammingDistance) {
     val hammingDistance by lazy {HammingDistance()}
     override fun applyAlgo(compareRow: String, currentRow: String): Int {
         val compareRowLen = compareRow.length
@@ -72,7 +80,7 @@ class HammingDistanceAlgo(threshold: Int): Algo<Int>(threshold, "Hamming Distanc
         }
     }
 }
-class JaccardDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Jaccard Distance") {
+class JaccardDistanceAlgo(threshold: Double): Algo<Double>(threshold, AlgoType.JaccardDistance) {
     val jaccardDistance by lazy {JaccardDistance()}
     override fun applyAlgo(compareRow: String, currentRow: String): Double {
         return jaccardDistance.apply(compareRow, currentRow)
@@ -81,7 +89,7 @@ class JaccardDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Jaccard D
         return threshold >= incomingThreshold
     }
 }
-class CosineDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Cosine Distance") {
+class CosineDistanceAlgo(threshold: Double): Algo<Double>(threshold, AlgoType.CosineDistance) {
     val cosineDistance by lazy {CosineDistance()}
     override fun applyAlgo(compareRow: String, currentRow: String): Double {
         return (cosineDistance.apply(compareRow, currentRow) * 100)
@@ -90,7 +98,7 @@ class CosineDistanceAlgo(threshold: Double): Algo<Double>(threshold, "Cosine Dis
         return threshold >= incomingThreshold
     }
 }
-class FuzzyScoreSimilarAlgo(threshold: Int, locale: Locale = Locale.getDefault()): Algo<Int>(threshold, "Fuzzy Similarity") {
+class FuzzyScoreSimilarAlgo(threshold: Int, locale: Locale = Locale.getDefault()): Algo<Int>(threshold, AlgoType.FuzzySimilarity) {
     val fuzzyScore by lazy {FuzzyScore(locale)}
     override fun applyAlgo(compareRow: String, currentRow: String): Int {
         return fuzzyScore.fuzzyScore(compareRow, currentRow)
