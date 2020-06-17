@@ -5,10 +5,12 @@ package org.bradfordmiller.fuzzyrowmatcher
 
 import org.apache.commons.codec.digest.DigestUtils
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
+import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoType
 import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.fuzzyrowmatcher.db.DbPayload
 import org.bradfordmiller.fuzzyrowmatcher.db.JsonRecord
+import org.bradfordmiller.fuzzyrowmatcher.db.ScoreRecord
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.json.JSONObject
@@ -34,7 +36,6 @@ class FuzzyRowMatcher(private val config: Config) {
         val commitSize = config.dbCommitSize
 
         var comparisonCount = 0L
-        var matches = 0L
         var duplicates = 0L
         var scoreCount = 0L
         var dbPayload = mutableListOf<DbPayload>()
@@ -45,21 +46,21 @@ class FuzzyRowMatcher(private val config: Config) {
             conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)!!.use { stmt ->
                 stmt.executeQuery().use { rs ->
                     var rowIndex = 1
-                    var rowCount = 0L
+                    var rowCount = 1L
                     val rsmd = rs.metaData
                     val rsColumns = SqlUtils.getColumnsFromRs(rsmd)
                     while(rs.next()) {
-                        var currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
-                        var currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
+                        val currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
+                        val currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                         val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
-                        dbPayload.add(DbPayload(jsonRecordCurrent, emptyList()))
                         rowCount += 1
                         while (rs.next()) {
-                            var rowData = SqlUtils.stringifyRow(rs, hashColumns)
-                            var rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
-                            var rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
+                            val rowData = SqlUtils.stringifyRow(rs, hashColumns)
+                            val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
+                            val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                             val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
+
                             if(ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
@@ -84,20 +85,34 @@ class FuzzyRowMatcher(private val config: Config) {
                                   bitVector.filter {bv -> bv.qualifies }.isNotEmpty()
                               }
                             //Publish records to queue
-                            //data class ScoreRecord(val id: Long, val currentRecordId: Long, val compareRecordId: Long, val scores: Map<AlgoType, Number>)
-                            if(qualifies) {
-                                bitVector.forEach{ar -> matches += 1; logger.info(ar.toString())}
-                            }
+                            val scoreRecord =
+                                if(qualifies) {
+                                    val scores = bitVector.map{bv -> bv.algoType to bv.score }.toMap()
+                                    scoreCount += 1
+                                    ScoreRecord(scoreCount, jsonRecordCurrent.id, jsonRecordRow.id, scores)
+                                } else {
+                                    null
+                                }
+                            dbPayload.add(DbPayload(jsonRecordCurrent, jsonRecordRow, scoreRecord))
                             comparisonCount += algoCount
+                            rowCount += 1
+                            if(dbPayload.size % commitSize == 0L) {
+                                //Publish the payload
+                                //Clear the payload
+                            }
                         }
                         rowIndex += 1
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $matches successful matches. $duplicates times duplicate values were detected.")
+                    if(dbPayload.isNotEmpty()) {
+                        //Publish the balance of the payload
+                    }
+                    logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }
         }
+        val scoreResults = dbPayload.filter {db -> db.scoreRecord != null}
         return true
     }
 }

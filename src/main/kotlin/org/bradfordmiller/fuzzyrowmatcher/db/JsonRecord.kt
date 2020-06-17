@@ -4,4 +4,4 @@ import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoType
 
 data class JsonRecord(val id: Long, val jsonData: String)
 data class ScoreRecord(val id: Long, val currentRecordId: Long, val compareRecordId: Long, val scores: Map<AlgoType, Number>)
-data class DbPayload(val jsonRecord: JsonRecord, val scoreRecords: List<ScoreRecord>)
+data class DbPayload(val currentJsonRecord: JsonRecord, val compareJsonRecord: JsonRecord, val scoreRecord: ScoreRecord?)
