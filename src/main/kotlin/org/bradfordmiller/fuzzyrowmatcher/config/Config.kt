@@ -37,6 +37,7 @@ class Config private constructor(
     val strLenDeltaPct: Double,
     val aggregateScoreResults: Boolean,
     val ignoreDupes: Boolean,
+    val dbCommitSize: Long,
     val algoSet: HashSet<Algo<Number>>
 ) {
 
@@ -45,6 +46,7 @@ class Config private constructor(
         private var strLenDeltaPct: Double? = null,
         private var aggregateScoreResults: Boolean? = null,
         private var ignoreDupes: Boolean? = null,
+        private var dbCommitSize: Long? = null,
         private var jaroDistance: Algo<Number>? = null,
         private var fuzzyScore: Algo<Number>? = null,
         private var levenshteinDistance: Algo<Number>? = null,
@@ -66,6 +68,7 @@ class Config private constructor(
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
         fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
         fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
+        fun dbCommitSize(dbCommitSize: Long) = apply {this.dbCommitSize = dbCommitSize}
 
         fun build(): Config {
 
@@ -87,7 +90,8 @@ class Config private constructor(
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
             val aggregateScoreResults = aggregateScoreResults ?: false
             val ignoreDupes = ignoreDupes ?: false
-            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, algoSet)
+            val dbCommitSize = dbCommitSize ?: 500
+            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
             logger.trace("Built config object $config")
             return config
         }

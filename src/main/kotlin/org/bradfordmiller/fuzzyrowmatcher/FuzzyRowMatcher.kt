@@ -7,6 +7,8 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.algos.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
+import org.bradfordmiller.fuzzyrowmatcher.db.DbPayload
+import org.bradfordmiller.fuzzyrowmatcher.db.JsonRecord
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.json.JSONObject
@@ -29,10 +31,13 @@ class FuzzyRowMatcher(private val config: Config) {
         val algoCount = config.algoSet.size
         val aggregateResults = config.aggregateScoreResults
         val ignoreDupes = config.ignoreDupes
+        val commitSize = config.dbCommitSize
 
         var comparisonCount = 0L
         var matches = 0L
         var duplicates = 0L
+        var scoreCount = 0L
+        var dbPayload = mutableListOf<DbPayload>()
 
         logger.info("Beginning fuzzy matching process...")
 
@@ -40,18 +45,21 @@ class FuzzyRowMatcher(private val config: Config) {
             conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)!!.use { stmt ->
                 stmt.executeQuery().use { rs ->
                     var rowIndex = 1
+                    var rowCount = 0L
                     val rsmd = rs.metaData
                     val rsColumns = SqlUtils.getColumnsFromRs(rsmd)
                     while(rs.next()) {
                         var currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
                         var currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                        val currentJson = JSONObject(currentRsMap)
+                        val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
+                        dbPayload.add(DbPayload(jsonRecordCurrent, emptyList()))
+                        rowCount += 1
                         while (rs.next()) {
                             var rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             var rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             var rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                            var rowJson = JSONObject(rowRsMap)
+                            val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
                             if(ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
@@ -75,6 +83,8 @@ class FuzzyRowMatcher(private val config: Config) {
                               } else {
                                   bitVector.filter {bv -> bv.qualifies }.isNotEmpty()
                               }
+                            //Publish records to queue
+                            //data class ScoreRecord(val id: Long, val currentRecordId: Long, val compareRecordId: Long, val scores: Map<AlgoType, Number>)
                             if(qualifies) {
                                 bitVector.forEach{ar -> matches += 1; logger.info(ar.toString())}
                             }
