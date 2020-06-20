@@ -19,21 +19,6 @@ data class AlgoResult(val algoType: AlgoType, val qualifies: Boolean, val score:
     }
 }
 
-class Strings {
-    companion object {
-        fun checkStrLen(compareRow: String, currentRow: String, strLenDeltaPct: Double): Boolean {
-            val compareLen = compareRow.length
-            val currentRow = currentRow.length
-            val pct =
-                if(compareLen > currentRow) {
-                    currentRow.toDouble() / compareLen.toDouble()
-                } else {
-                    compareLen.toDouble() / currentRow.toDouble()
-                }
-            return (pct * 100) >= strLenDeltaPct
-        }
-    }
-}
 abstract class Algo<T: Number>(internal val threshold: T, val algoType: AlgoType) {
     companion object {
         val logger = LoggerFactory.getLogger(Algo::class.java)

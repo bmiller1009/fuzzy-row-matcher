@@ -6,6 +6,10 @@ import org.apache.commons.text.similarity.LevenshteinDistance
 import org.bradfordmiller.fuzzyrowmatcher.algos.*
 import org.slf4j.LoggerFactory
 
+interface SimpleJndi {
+    val jndiName: String
+    val context: String
+}
 /**
  * A source jndi entity
  *
@@ -18,11 +22,11 @@ import org.slf4j.LoggerFactory
  * @property hashKeys a list of column names which will be used to hash the values returned by [tableQuery]
  */
 data class SourceJndi(
-    val jndiName: String,
-    val context: String,
-    val tableQuery: String,
-    val hashKeys: MutableSet<String> = mutableSetOf()
-) {
+        override val jndiName: String,
+        override val context: String,
+        val tableQuery: String,
+        val hashKeys: MutableSet<String> = mutableSetOf()
+): SimpleJndi {
     val sql by lazy {
         if (tableQuery.startsWith("SELECT", true)) {
             tableQuery
@@ -32,8 +36,14 @@ data class SourceJndi(
     }
 }
 
+data class TargetJndi(
+    override val jndiName: String,
+    override val context: String
+): SimpleJndi
+
 class Config private constructor(
     val sourceJndi: SourceJndi,
+    val targetJndi: TargetJndi?,
     val strLenDeltaPct: Double,
     val aggregateScoreResults: Boolean,
     val ignoreDupes: Boolean,
@@ -43,6 +53,7 @@ class Config private constructor(
 
     data class ConfigBuilder(
         private var sourceJndi: SourceJndi? = null,
+        private var targetJndi: TargetJndi? = null,
         private var strLenDeltaPct: Double? = null,
         private var aggregateScoreResults: Boolean? = null,
         private var ignoreDupes: Boolean? = null,
@@ -59,6 +70,7 @@ class Config private constructor(
         }
 
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
+        fun targetJndi(targetJndi: TargetJndi) = apply {this.targetJndi = targetJndi}
         fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistanceAlgo(threshold) as Algo<Number> }
         fun applyCosineDistance(threshold: Double) = apply{this.cosineDistance = CosineDistanceAlgo(threshold) as Algo<Number>}
         fun applyHammingDistance(threshold: Int) = apply{this.hammingDistance = HammingDistanceAlgo(threshold) as Algo<Number>}
@@ -91,7 +103,7 @@ class Config private constructor(
             val aggregateScoreResults = aggregateScoreResults ?: false
             val ignoreDupes = ignoreDupes ?: false
             val dbCommitSize = dbCommitSize ?: 500
-            val config = Config(sourceJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
+            val config = Config(sourceJndi, targetJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
             logger.trace("Built config object $config")
             return config
         }

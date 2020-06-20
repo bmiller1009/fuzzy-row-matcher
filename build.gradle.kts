@@ -90,7 +90,8 @@ dependencies {
     implementation("net.sourceforge.csvjdbc:csvjdbc:1.0.35")
     implementation("org.json", "json", "20200518")
     implementation("org.mybatis", "mybatis", "3.5.5")
-    // Use the Kotlin test library.
+    implementation("org.xerial", "sqlite-jdbc","3.28.0")
+            // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
         isTransitive = true

@@ -2,6 +2,8 @@ package org.bradfordmiller.fuzzyrowmatcher
 
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi
+import org.bradfordmiller.fuzzyrowmatcher.config.TargetJndi
+import org.bradfordmiller.fuzzyrowmatcher.db.SqlRunner
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
@@ -36,5 +38,12 @@ class FuzzyRowMatcherTest {
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
         assert(result)
+    }
+
+    @Test
+    fun testTableBootstrap() {
+        val tj = TargetJndi("SqlLiteTest", "default_ds")
+        val success = SqlRunner.runScript(tj.jndiName, tj.context)
+        assert(success)
     }
 }
