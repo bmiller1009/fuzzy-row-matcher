@@ -24,6 +24,7 @@ class FuzzyRowMatcherTest {
         val config =
             Config.ConfigBuilder()
                 .sourceJndi(sourceJndi)
+                .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
                 .applyJaroDistance(98.0)
                 .applyLevenshtein(5)
                 .applyFuzzyScore(90)
@@ -43,7 +44,8 @@ class FuzzyRowMatcherTest {
     @Test
     fun testTableBootstrap() {
         val tj = TargetJndi("SqlLiteTest", "default_ds")
-        val success = SqlRunner.runScript(tj.jndiName, tj.context)
+        val timestamp = (System.currentTimeMillis() / 1000).toString()
+        val success = SqlRunner.runScript(tj.jndiName, tj.context, timestamp)
         assert(success)
     }
 }

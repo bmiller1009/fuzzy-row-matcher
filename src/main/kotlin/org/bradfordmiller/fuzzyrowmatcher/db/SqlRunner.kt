@@ -15,10 +15,9 @@ class SqlRunner {
     companion object {
         val logger = LoggerFactory.getLogger(SqlRunner::class.java)
 
-        private fun prepScript(conn: Connection): String {
+        private fun prepScript(conn: Connection, timestamp: String): String {
             val vendor = conn.metaData.databaseProductName.toLowerCase()
             val fileName = "src/main/resources/dbscripts/bootstrap_"
-            val timestamp = (System.currentTimeMillis() / 1000).toString()
             val formattedSql =
                     when (vendor) {
                         "sqlite" -> FileUtils.readFileToString(File("${fileName}sqlite.sql"), "UTF-8")
@@ -27,10 +26,10 @@ class SqlRunner {
             return formattedSql.replace("**TIMESTAMP**", timestamp)
         }
 
-        fun runScript(jndi: String, context: String): Boolean {
+        fun runScript(jndi: String, context: String, timestamp: String): Boolean {
             return try {
                 JNDIUtils.getJndiConnection(jndi, context).use { c ->
-                    val formattedScript = prepScript(c)
+                    val formattedScript = prepScript(c, timestamp)
                     BufferedReader(StringReader(formattedScript)).use { br ->
                         val sr = ScriptRunner(c)
                         sr.setEscapeProcessing(false)

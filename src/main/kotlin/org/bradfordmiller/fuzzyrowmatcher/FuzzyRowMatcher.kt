@@ -4,20 +4,14 @@
 package org.bradfordmiller.fuzzyrowmatcher
 
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.io.FileUtils
-import org.apache.ibatis.javassist.NotFoundException
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.utils.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
-import org.bradfordmiller.fuzzyrowmatcher.db.DbPayload
-import org.bradfordmiller.fuzzyrowmatcher.db.JsonRecord
-import org.bradfordmiller.fuzzyrowmatcher.db.ScoreRecord
-import org.bradfordmiller.fuzzyrowmatcher.db.SqlRunner
+import org.bradfordmiller.fuzzyrowmatcher.db.*
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
-import java.io.File
 import java.lang.RuntimeException
 import java.sql.ResultSet
 
@@ -38,22 +32,20 @@ class FuzzyRowMatcher(private val config: Config) {
         val aggregateResults = config.aggregateScoreResults
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
+        val timestamp = (System.currentTimeMillis() / 1000).toString()
 
         var comparisonCount = 0L
         var duplicates = 0L
         var scoreCount = 0L
         var dbPayload = mutableListOf<DbPayload>()
 
-        val success =
-          config.targetJndi.let { tj ->
-              logger.info("Beginning table creation....")
-              val status = SqlRunner.runScript(tj!!.jndiName, tj.context)
-              logger.info("Tables successfully created")
-              status
-          }
-
-        if(!success)
-            throw RuntimeException("Failed to build database tables")
+        config.targetJndi?.let { tj ->
+          logger.info("Beginning table creation....")
+          val status = SqlRunner.runScript(tj.jndiName, tj.context, timestamp)
+          logger.info("Tables successfully created")
+          if(!status)
+              throw RuntimeException("Failed to build database tables")
+        }
 
         logger.info("Beginning fuzzy matching process...")
 
@@ -112,8 +104,9 @@ class FuzzyRowMatcher(private val config: Config) {
                             comparisonCount += algoCount
                             rowCount += 1
                             if(dbPayload.size % commitSize == 0L) {
-                                //Publish the payload
-                                //Clear the payload
+                                config.targetJndi?.let { tj ->
+                                    SqlPersistor.writeRecords(dbPayload, timestamp, tj)
+                                }
                             }
                         }
                         rowIndex += 1
