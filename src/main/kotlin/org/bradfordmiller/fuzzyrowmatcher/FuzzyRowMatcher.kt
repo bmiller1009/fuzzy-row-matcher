@@ -33,11 +33,13 @@ class FuzzyRowMatcher(private val config: Config) {
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
         val timestamp = (System.currentTimeMillis() / 1000).toString()
+        val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
 
         var comparisonCount = 0L
         var duplicates = 0L
         var scoreCount = 0L
-        var dbPayload = mutableListOf<DbPayload>()
+        var jsonRecords = mutableListOf<JsonRecord>()
+        var scoreRecords = mutableListOf<ScoreRecord?>()
 
         config.targetJndi?.let { tj ->
           logger.info("Beginning table creation....")
@@ -61,6 +63,7 @@ class FuzzyRowMatcher(private val config: Config) {
                         val currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                         val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
+                        jsonRecords.add(jsonRecordCurrent)
                         rowCount += 1
                         while (rs.next()) {
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
@@ -100,12 +103,14 @@ class FuzzyRowMatcher(private val config: Config) {
                                 } else {
                                     null
                                 }
-                            dbPayload.add(DbPayload(jsonRecordCurrent, jsonRecordRow, scoreRecord))
+                            scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
                             rowCount += 1
-                            if(dbPayload.size % commitSize == 0L) {
+                            if(scoreRecords.size % commitSize == 0L) {
                                 config.targetJndi?.let { tj ->
-                                    SqlPersistor.writeRecords(dbPayload, timestamp, tj)
+                                    val dbPayload = DbPayload(jsonRecords, scoreRecords)
+                                    sqlPersistor.writeRecords(dbPayload, tj)
+                                    dbPayload.clear()
                                 }
                             }
                         }
@@ -113,14 +118,14 @@ class FuzzyRowMatcher(private val config: Config) {
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-                    if(dbPayload.isNotEmpty()) {
+                    /*if(dbPayload.isNotEmpty()) {
                         //Publish the balance of the payload
-                    }
+                    }*/
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }
         }
-        val scoreResults = dbPayload.filter {db -> db.scoreRecord != null}
+        //val scoreResults = dbPayload.filter {db -> db.scoreRecord != null}
         return true
     }
 }

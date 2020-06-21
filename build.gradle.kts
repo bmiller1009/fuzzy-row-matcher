@@ -108,6 +108,8 @@ tasks.matching{it.name != "set-defaults"}.forEach {t ->
     t.dependsOn("set-defaults")
 }
 
+
+
 /*tasks.named<CreateStartScripts>("startScripts") {
     classpath = files(classpath) + files("src/dist/lib/conf")
 }*/
