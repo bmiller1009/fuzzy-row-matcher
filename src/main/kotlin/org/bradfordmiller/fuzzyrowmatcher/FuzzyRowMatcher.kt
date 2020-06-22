@@ -64,6 +64,7 @@ class FuzzyRowMatcher(private val config: Config) {
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                         val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
                         jsonRecords.add(jsonRecordCurrent)
+
                         rowCount += 1
                         while (rs.next()) {
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
@@ -105,22 +106,26 @@ class FuzzyRowMatcher(private val config: Config) {
                                 }
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
-                            rowCount += 1
-                            if(scoreRecords.size % commitSize == 0L) {
+                            if(jsonRecords.size % commitSize == 0L) {
                                 config.targetJndi?.let { tj ->
                                     val dbPayload = DbPayload(jsonRecords, scoreRecords)
                                     sqlPersistor.writeRecords(dbPayload, tj)
                                     dbPayload.clear()
                                 }
                             }
+                            rowCount += 1
                         }
+
                         rowIndex += 1
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-                    /*if(dbPayload.isNotEmpty()) {
-                        //Publish the balance of the payload
-                    }*/
+
+                    config.targetJndi?.let { tj ->
+                        val dbPayload = DbPayload(jsonRecords, scoreRecords)
+                        sqlPersistor.writeRecords(dbPayload, tj)
+                        dbPayload.clear()
+                    }
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }

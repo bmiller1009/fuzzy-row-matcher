@@ -20,7 +20,12 @@ class SqlRunner {
             val fileName = "src/main/resources/dbscripts/bootstrap_"
             val formattedSql =
                     when (vendor) {
-                        "sqlite" -> FileUtils.readFileToString(File("${fileName}sqlite.sql"), "UTF-8")
+                        "sqlite" -> {
+                            val content = FileUtils.readFileToString(File("${fileName}sqlite.sql"), "UTF-8")
+                            val stmt = conn.createStatement()
+                            stmt.executeUpdate("PRAGMA foreign_keys = ON;")
+                            content
+                        }
                         else -> throw NotFoundException("Database vendor not ")
                     }
             return formattedSql.replace("**TIMESTAMP**", timestamp)
