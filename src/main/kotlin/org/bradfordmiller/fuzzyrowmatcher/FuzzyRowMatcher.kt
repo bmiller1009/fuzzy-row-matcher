@@ -56,6 +56,7 @@ class FuzzyRowMatcher(private val config: Config) {
                 stmt.executeQuery().use { rs ->
                     var rowIndex = 1
                     var rowCount = 1L
+                    var firstPass = true
                     val rsmd = rs.metaData
                     val rsColumns = SqlUtils.getColumnsFromRs(rsmd)
                     while(rs.next()) {
@@ -63,7 +64,9 @@ class FuzzyRowMatcher(private val config: Config) {
                         val currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                         val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
-                        jsonRecords.add(jsonRecordCurrent)
+
+                        if(firstPass)
+                            jsonRecords.add(jsonRecordCurrent)
 
                         rowCount += 1
                         while (rs.next()) {
@@ -71,6 +74,9 @@ class FuzzyRowMatcher(private val config: Config) {
                             val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                             val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
+
+                            if(firstPass)
+                                jsonRecords.add(jsonRecordRow)
 
                             if(ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
@@ -115,8 +121,9 @@ class FuzzyRowMatcher(private val config: Config) {
                             }
                             rowCount += 1
                         }
-
+                        firstPass = false
                         rowIndex += 1
+                        rowCount = rowIndex.toLong()
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
