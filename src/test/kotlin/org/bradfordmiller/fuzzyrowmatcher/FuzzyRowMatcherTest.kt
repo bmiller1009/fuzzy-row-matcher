@@ -17,7 +17,7 @@ class FuzzyRowMatcherTest {
             SourceJndi(
                     "RealEstateIn",
                     "default_ds",
-                    "SELECT * FROM Sacramentorealestatetransactions LIMIT 100",
+                    "SELECT * FROM Sacramentorealestatetransactions",
                     hashColumns
             )
 

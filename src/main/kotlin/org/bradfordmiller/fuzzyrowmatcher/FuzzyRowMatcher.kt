@@ -32,6 +32,7 @@ class FuzzyRowMatcher(private val config: Config) {
         val aggregateResults = config.aggregateScoreResults
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
+        val samplePct = config.samplePercentage
         val timestamp = (System.currentTimeMillis() / 1000).toString()
         val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
 

@@ -45,6 +45,7 @@ class Config private constructor(
     val sourceJndi: SourceJndi,
     val targetJndi: TargetJndi?,
     val strLenDeltaPct: Double,
+    val samplePercentage: Int,
     val aggregateScoreResults: Boolean,
     val ignoreDupes: Boolean,
     val dbCommitSize: Long,
@@ -58,6 +59,7 @@ class Config private constructor(
         private var aggregateScoreResults: Boolean? = null,
         private var ignoreDupes: Boolean? = null,
         private var dbCommitSize: Long? = null,
+        private var samplePercentage: Int? = null,
         private var jaroDistance: Algo<Number>? = null,
         private var fuzzyScore: Algo<Number>? = null,
         private var levenshteinDistance: Algo<Number>? = null,
@@ -80,6 +82,7 @@ class Config private constructor(
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
         fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
         fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
+        fun samplePercentage(samplePct: Int) = apply {this.samplePercentage = samplePercentage}
         fun dbCommitSize(dbCommitSize: Long) = apply {this.dbCommitSize = dbCommitSize}
 
         fun build(): Config {
@@ -100,10 +103,11 @@ class Config private constructor(
             addAlgo(hammingDistance)
             addAlgo(jaccardDistance)
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
+            val samplePercentage = samplePercentage ?: 100
             val aggregateScoreResults = aggregateScoreResults ?: false
             val ignoreDupes = ignoreDupes ?: false
             val dbCommitSize = dbCommitSize ?: 500
-            val config = Config(sourceJndi, targetJndi, strLenDeltaPct, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
+            val config = Config(sourceJndi, targetJndi, strLenDeltaPct, samplePercentage, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
             logger.trace("Built config object $config")
             return config
         }
