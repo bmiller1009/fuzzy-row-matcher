@@ -18,3 +18,16 @@ CREATE TABLE scores_**TIMESTAMP** (
 	FOREIGN KEY(json_data2_row_id) REFERENCES json_data(id),
 	PRIMARY KEY(id,json_data1_row_id,json_data2_row_id)
 );
+
+CREATE VIEW final_scores_**TIMESTAMP** AS
+SELECT a.json_row json_row_1, c.json_row json_row_2,
+b.jaro_dist_score,
+	b.levenshtein_distance_score	,
+	b.hamming_distance_score	,
+	b.jaccard_distance_score	,
+	b.cosine_distance_score	,
+	b.fuzzy_similiarity_score
+FROM
+json_data_**TIMESTAMP** a
+INNER JOIN scores_**TIMESTAMP** b ON a.id = b.json_data1_row_id
+INNER JOIN json_data_**TIMESTAMP** c ON c.id = b.json_data2_row_id;
