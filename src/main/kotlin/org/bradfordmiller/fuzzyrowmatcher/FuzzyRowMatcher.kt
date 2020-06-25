@@ -50,6 +50,14 @@ class FuzzyRowMatcher(private val config: Config) {
               throw RuntimeException("Failed to build database tables")
         }
 
+        fun loadRecords() {
+            config.targetJndi?.let { tj ->
+                val dbPayload = DbPayload(jsonRecords, scoreRecords)
+                sqlPersistor.writeRecords(dbPayload, tj)
+                dbPayload.clear()
+            }
+        }
+
         logger.info("Beginning fuzzy matching process...")
 
         JNDIUtils.getConnection(ds).use {conn ->
@@ -114,11 +122,7 @@ class FuzzyRowMatcher(private val config: Config) {
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
                             if(jsonRecords.size % commitSize == 0L) {
-                                config.targetJndi?.let { tj ->
-                                    val dbPayload = DbPayload(jsonRecords, scoreRecords)
-                                    sqlPersistor.writeRecords(dbPayload, tj)
-                                    dbPayload.clear()
-                                }
+                                loadRecords()
                             }
                             rowCount += 1
                         }
@@ -128,12 +132,7 @@ class FuzzyRowMatcher(private val config: Config) {
                         logger.trace("Cursor moved to row index $rowIndex")
                         rs.absolute(rowIndex)
                     }
-
-                    config.targetJndi?.let { tj ->
-                        val dbPayload = DbPayload(jsonRecords, scoreRecords)
-                        sqlPersistor.writeRecords(dbPayload, tj)
-                        dbPayload.clear()
-                    }
+                    loadRecords()
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }
