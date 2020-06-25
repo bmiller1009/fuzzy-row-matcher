@@ -5,6 +5,7 @@ import org.apache.commons.text.similarity.JaroWinklerDistance
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.bradfordmiller.fuzzyrowmatcher.algos.*
 import org.slf4j.LoggerFactory
+import java.lang.IllegalArgumentException
 
 interface SimpleJndi {
     val jndiName: String
@@ -82,7 +83,7 @@ class Config private constructor(
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
         fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
         fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
-        fun samplePercentage(samplePct: Int) = apply {this.samplePercentage = samplePercentage}
+        fun samplePercentage(samplePct: Int) = apply {this.samplePercentage = samplePct}
         fun dbCommitSize(dbCommitSize: Long) = apply {this.dbCommitSize = dbCommitSize}
 
         fun build(): Config {
@@ -103,11 +104,16 @@ class Config private constructor(
             addAlgo(hammingDistance)
             addAlgo(jaccardDistance)
             val strLenDeltaPct = strLenDeltaPct ?: 50.0
-            val samplePercentage = samplePercentage ?: 100
+
+            val samplePct = samplePercentage ?: 100
+            if(100 % samplePct != 0 || samplePct > 100) {
+                throw IllegalArgumentException("Sample value must be evenly divisible by 100")
+            }
+
             val aggregateScoreResults = aggregateScoreResults ?: false
             val ignoreDupes = ignoreDupes ?: false
             val dbCommitSize = dbCommitSize ?: 500
-            val config = Config(sourceJndi, targetJndi, strLenDeltaPct, samplePercentage, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
+            val config = Config(sourceJndi, targetJndi, strLenDeltaPct, 100 / samplePct, aggregateScoreResults, ignoreDupes, dbCommitSize, algoSet)
             logger.trace("Built config object $config")
             return config
         }

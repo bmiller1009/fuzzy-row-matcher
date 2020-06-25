@@ -32,8 +32,9 @@ class FuzzyRowMatcherTest {
                 .applyHammingDistance(15)
                 .applyJaccardDistance(90.0)
                 .strLenDeltaPct(50.0)
-                .aggregateScoreResults(true)
+                .aggregateScoreResults(false)
                 .ignoreDupes(true)
+                .samplePercentage(25)
                 .build()
 
         val frm = FuzzyRowMatcher(config)

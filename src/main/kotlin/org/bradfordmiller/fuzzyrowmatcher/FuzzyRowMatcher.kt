@@ -32,15 +32,16 @@ class FuzzyRowMatcher(private val config: Config) {
         val aggregateResults = config.aggregateScoreResults
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
-        val samplePct = config.samplePercentage
+        val offset = if(config.samplePercentage == 1) 0 else config.samplePercentage
+
         val timestamp = (System.currentTimeMillis() / 1000).toString()
         val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
+        val jsonRecords = mutableListOf<JsonRecord>()
+        val scoreRecords = mutableListOf<ScoreRecord?>()
 
         var comparisonCount = 0L
         var duplicates = 0L
         var scoreCount = 0L
-        var jsonRecords = mutableListOf<JsonRecord>()
-        var scoreRecords = mutableListOf<ScoreRecord?>()
 
         config.targetJndi?.let { tj ->
           logger.info("Beginning table creation....")
@@ -74,20 +75,26 @@ class FuzzyRowMatcher(private val config: Config) {
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                         val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
 
-                        if(firstPass)
+                        if (firstPass)
                             jsonRecords.add(jsonRecordCurrent)
 
                         rowCount += 1
                         while (rs.next()) {
+
+                            if(offset != 0) {
+                                rowCount += offset
+                                rs.absolute(rowCount.toInt())
+                            }
+
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                             val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
 
-                            if(firstPass)
+                            if (firstPass)
                                 jsonRecords.add(jsonRecordRow)
 
-                            if(ignoreDupes && currentRowHash == rowHash) {
+                            if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
                                 logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
@@ -99,37 +106,38 @@ class FuzzyRowMatcher(private val config: Config) {
                                 continue
                             }
                             val bitVector =
-                                algoSet.map { algo ->
-                                    val score = algo.applyAlgo(rowData, currentRowData)
-                                    AlgoResult(algo.algoType, algo.qualifyThreshold(score), score, currentRowData, rowData)
-                                }
+                                    algoSet.map { algo ->
+                                        val score = algo.applyAlgo(rowData, currentRowData)
+                                        AlgoResult(algo.algoType, algo.qualifyThreshold(score), score, currentRowData, rowData)
+                                    }
                             //Now determine if this match qualifies
                             val qualifies =
-                              if(aggregateResults) {
-                                  bitVector.filter { bv -> !bv.qualifies }.isEmpty()
-                              } else {
-                                  bitVector.filter {bv -> bv.qualifies }.isNotEmpty()
-                              }
+                                    if (aggregateResults) {
+                                        bitVector.filter { bv -> !bv.qualifies }.isEmpty()
+                                    } else {
+                                        bitVector.filter { bv -> bv.qualifies }.isNotEmpty()
+                                    }
                             //Publish records to queue
                             val scoreRecord =
-                                if(qualifies) {
-                                    val scores = bitVector.map{bv -> bv.algoType to bv.score }.toMap()
-                                    scoreCount += 1
-                                    ScoreRecord(scoreCount, jsonRecordCurrent.id, jsonRecordRow.id, scores)
-                                } else {
-                                    null
-                                }
+                                    if (qualifies) {
+                                        val scores = bitVector.map { bv -> bv.algoType to bv.score }.toMap()
+                                        scoreCount += 1
+                                        ScoreRecord(scoreCount, jsonRecordCurrent.id, jsonRecordRow.id, scores)
+                                    } else {
+                                        null
+                                    }
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
-                            if(jsonRecords.size % commitSize == 0L) {
+                            if (jsonRecords.size % commitSize == 0L) {
                                 loadRecords()
                             }
-                            rowCount += 1
+                            if(offset == 0)
+                                rowCount += 1
                         }
                         firstPass = false
                         rowIndex += 1
                         rowCount = rowIndex.toLong()
-                        logger.trace("Cursor moved to row index $rowIndex")
+
                         rs.absolute(rowIndex)
                     }
                     loadRecords()
