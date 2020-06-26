@@ -34,7 +34,7 @@ class FuzzyRowMatcherTest {
                 .strLenDeltaPct(50.0)
                 .aggregateScoreResults(false)
                 .ignoreDupes(true)
-                .samplePercentage(25)
+                //.samplePercentage(25)
                 .build()
 
         val frm = FuzzyRowMatcher(config)
