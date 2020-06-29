@@ -145,6 +145,7 @@ class FuzzyRowMatcher(private val config: Config) {
                 }
             }
         }
+        //return min,first quartile, median, third quartile, max, mean, std deviation, PER SCORE
         //val scoreResults = dbPayload.filter {db -> db.scoreRecord != null}
         return true
     }
