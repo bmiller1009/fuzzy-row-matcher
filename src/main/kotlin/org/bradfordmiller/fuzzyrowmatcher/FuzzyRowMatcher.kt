@@ -11,14 +11,17 @@ import org.bradfordmiller.fuzzyrowmatcher.db.*
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
 import org.json.JSONObject
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.RuntimeException
 import java.sql.ResultSet
 
+data class FuzzyRowMatcherRpt()
+
 class FuzzyRowMatcher(private val config: Config) {
 
     companion object {
-        val logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
+        val logger: Logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
     }
 
     fun fuzzyMatch(): Boolean {
@@ -33,6 +36,7 @@ class FuzzyRowMatcher(private val config: Config) {
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
         val offset = if(config.samplePercentage == 1) 0 else config.samplePercentage
+        val targetJndi = config.targetJndi
 
         val timestamp = (System.currentTimeMillis() / 1000).toString()
         val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
@@ -51,11 +55,12 @@ class FuzzyRowMatcher(private val config: Config) {
               throw RuntimeException("Failed to build database tables")
         }
 
-        fun loadRecords() {
-            config.targetJndi?.let { tj ->
+        fun loadRecords(jsonRecords: MutableList<JsonRecord>, scoreRecords: MutableList<ScoreRecord?>) {
+            if(targetJndi != null) {
                 val dbPayload = DbPayload(jsonRecords, scoreRecords)
-                sqlPersistor.writeRecords(dbPayload, tj)
-                dbPayload.clear()
+                sqlPersistor.writeRecords(dbPayload, targetJndi)
+                jsonRecords.clear()
+                scoreRecords.clear()
             }
         }
 
@@ -129,7 +134,7 @@ class FuzzyRowMatcher(private val config: Config) {
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
                             if (jsonRecords.size % commitSize == 0L) {
-                                loadRecords()
+                                loadRecords(jsonRecords, scoreRecords)
                             }
                             if(offset == 0)
                                 rowCount += 1
@@ -140,7 +145,7 @@ class FuzzyRowMatcher(private val config: Config) {
 
                         rs.absolute(rowIndex)
                     }
-                    loadRecords()
+                    loadRecords(jsonRecords, scoreRecords)
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }

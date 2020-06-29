@@ -91,6 +91,7 @@ dependencies {
     implementation("org.json", "json", "20200518")
     implementation("org.mybatis", "mybatis", "3.5.5")
     implementation("org.xerial", "sqlite-jdbc","3.28.0")
+    implementation("org.apache.commons", "commons-math3", "3.6.1")
             // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
