@@ -4,7 +4,13 @@
 package org.bradfordmiller.fuzzyrowmatcher
 
 import org.apache.commons.codec.digest.DigestUtils
+import org.apache.commons.math3.stat.descriptive.moment.Mean
+import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation
+import org.apache.commons.math3.stat.descriptive.rank.Median
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
+import org.bradfordmiller.fuzzyrowmatcher.algos.Algo
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
+import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoType
 import org.bradfordmiller.fuzzyrowmatcher.utils.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 import org.bradfordmiller.fuzzyrowmatcher.db.*
@@ -16,7 +22,8 @@ import org.slf4j.LoggerFactory
 import java.lang.RuntimeException
 import java.sql.ResultSet
 
-data class FuzzyRowMatcherRpt()
+data class AlgoStats(val min: Number, val firstQuartile: Double, val median: Double, val thirdQuartile: Double, val max: Number, val mean: Double, val stddeviation: Double)
+data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>)
 
 class FuzzyRowMatcher(private val config: Config) {
 
@@ -24,7 +31,7 @@ class FuzzyRowMatcher(private val config: Config) {
         val logger: Logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
     }
 
-    fun fuzzyMatch(): Boolean {
+    fun fuzzyMatch(): FuzzyRowMatcherRpt {
 
         val ds = JNDIUtils.getDataSource(config.sourceJndi.jndiName, config.sourceJndi.context).left
         val hashColumns = config.sourceJndi.hashKeys
@@ -42,10 +49,14 @@ class FuzzyRowMatcher(private val config: Config) {
         val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
         val jsonRecords = mutableListOf<JsonRecord>()
         val scoreRecords = mutableListOf<ScoreRecord?>()
+        val bitVectorList = mutableListOf<List<AlgoResult>>()
+        val algoResults = mutableMapOf<AlgoType, MutableList<Number>>()
+        val standardDeviation = StandardDeviation()
 
         var comparisonCount = 0L
         var duplicates = 0L
         var scoreCount = 0L
+        var rowCount = 1L
 
         config.targetJndi?.let { tj ->
           logger.info("Beginning table creation....")
@@ -70,7 +81,6 @@ class FuzzyRowMatcher(private val config: Config) {
             conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)!!.use { stmt ->
                 stmt.executeQuery().use { rs ->
                     var rowIndex = 1
-                    var rowCount = 1L
                     var firstPass = true
                     val rsmd = rs.metaData
                     val rsColumns = SqlUtils.getColumnsFromRs(rsmd)
@@ -99,10 +109,13 @@ class FuzzyRowMatcher(private val config: Config) {
                             if (firstPass)
                                 jsonRecords.add(jsonRecordRow)
 
+                            println("Duplicate found: $currentRowHash is identical to $rowHash. Skipping comparison")
+
                             if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
-                                logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
+                                //logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
+                                //println("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
                                 continue
                             }
                             //First check if the row qualifies based on the number of characters in each string
@@ -115,6 +128,7 @@ class FuzzyRowMatcher(private val config: Config) {
                                         val score = algo.applyAlgo(rowData, currentRowData)
                                         AlgoResult(algo.algoType, algo.qualifyThreshold(score), score, currentRowData, rowData)
                                     }
+
                             //Now determine if this match qualifies
                             val qualifies =
                                     if (aggregateResults) {
@@ -131,6 +145,9 @@ class FuzzyRowMatcher(private val config: Config) {
                                     } else {
                                         null
                                     }
+
+                            bitVectorList += bitVector
+
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
                             if (jsonRecords.size % commitSize == 0L) {
@@ -150,8 +167,24 @@ class FuzzyRowMatcher(private val config: Config) {
                 }
             }
         }
-        //return min,first quartile, median, third quartile, max, mean, std deviation, PER SCORE
-        //val scoreResults = dbPayload.filter {db -> db.scoreRecord != null}
-        return true
+
+        bitVectorList.flatten().forEach {bv ->
+            algoResults[bv.algoType]?.add(bv.score)
+        }
+
+        val algoStats = algoResults.map { ar ->
+            val doubleList = ar.value.map { it.toDouble() }.toDoubleArray()
+            ar.key to AlgoStats(
+                doubleList.min() as Number,
+                Percentile().evaluate(doubleList, 25.0),
+                Median().evaluate(doubleList),
+                Percentile().evaluate(doubleList, 75.0),
+                doubleList.max() as Number,
+                Mean().evaluate(doubleList),
+                standardDeviation.evaluate(doubleList)
+            )
+        }.toMap()
+
+        return FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats)
     }
 }
