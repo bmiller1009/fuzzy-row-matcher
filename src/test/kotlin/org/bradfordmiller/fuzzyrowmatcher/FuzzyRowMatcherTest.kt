@@ -17,7 +17,7 @@ class FuzzyRowMatcherTest {
             SourceJndi(
                     "RealEstateIn",
                     "default_ds",
-                    "SELECT * FROM Sacramentorealestatetransactions",
+                    "SELECT * FROM Sacramentorealestatetransactions", //LIMIT 10",
                     hashColumns
             )
         //Add defaults for each algos
@@ -33,8 +33,8 @@ class FuzzyRowMatcherTest {
                 .applyJaccardDistance(90.0)
                 .strLenDeltaPct(50.0)
                 .aggregateScoreResults(false)
-                .ignoreDupes(false)
-                .samplePercentage(25)
+                .ignoreDupes(true)
+                //.samplePercentage(25)
                 .build()
 
         val frm = FuzzyRowMatcher(config)

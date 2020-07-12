@@ -8,7 +8,6 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation
 import org.apache.commons.math3.stat.descriptive.rank.Median
 import org.apache.commons.math3.stat.descriptive.rank.Percentile
-import org.bradfordmiller.fuzzyrowmatcher.algos.Algo
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoType
 import org.bradfordmiller.fuzzyrowmatcher.utils.Strings
@@ -50,7 +49,16 @@ class FuzzyRowMatcher(private val config: Config) {
         val jsonRecords = mutableListOf<JsonRecord>()
         val scoreRecords = mutableListOf<ScoreRecord?>()
         val bitVectorList = mutableListOf<List<AlgoResult>>()
-        val algoResults = mutableMapOf<AlgoType, MutableList<Number>>()
+
+        val algoResults = mutableMapOf<AlgoType, MutableList<Number>>(
+            AlgoType.FuzzySimilarity to mutableListOf(),
+            AlgoType.LevenshteinDistance to mutableListOf(),
+            AlgoType.HammingDistance to mutableListOf(),
+            AlgoType.JaccardDistance to mutableListOf(),
+            AlgoType.CosineDistance to mutableListOf(),
+            AlgoType.JaroDistance to mutableListOf()
+        )
+
         val standardDeviation = StandardDeviation()
 
         var comparisonCount = 0L
@@ -106,23 +114,21 @@ class FuzzyRowMatcher(private val config: Config) {
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
                             val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
 
-                            if (firstPass)
-                                jsonRecords.add(jsonRecordRow)
-
-                            println("Duplicate found: $currentRowHash is identical to $rowHash. Skipping comparison")
-
                             if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
                                 //logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
-                                //println("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
                                 continue
                             }
                             //First check if the row qualifies based on the number of characters in each string
                             if (!Strings.checkStrLen(rowData, currentRowData, stringLenPct)) {
-                                logger.trace("String $rowData with length ${rowData.length} will not be checked against ${currentRowData} with length ${currentRowData.length}")
+                                logger.trace("String $rowData with length ${rowData.length} will not be checked against $currentRowData with length ${currentRowData.length}")
                                 continue
                             }
+
+                            if (firstPass)
+                                jsonRecords.add(jsonRecordRow)
+
                             val bitVector =
                                     algoSet.map { algo ->
                                         val score = algo.applyAlgo(rowData, currentRowData)
@@ -168,6 +174,8 @@ class FuzzyRowMatcher(private val config: Config) {
             }
         }
 
+        logger.info("Calculating Statistics for the run.")
+
         bitVectorList.flatten().forEach {bv ->
             algoResults[bv.algoType]?.add(bv.score)
         }
@@ -184,6 +192,8 @@ class FuzzyRowMatcher(private val config: Config) {
                 standardDeviation.evaluate(doubleList)
             )
         }.toMap()
+
+        logger.info("Calculating Statistics complete.")
 
         return FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats)
     }
