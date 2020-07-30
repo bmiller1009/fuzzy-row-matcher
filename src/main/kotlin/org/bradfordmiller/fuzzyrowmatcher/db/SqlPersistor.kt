@@ -7,7 +7,7 @@ import java.sql.SQLException
 import org.slf4j.LoggerFactory
 import java.sql.Types
 
-class SqlPersistor(val algoCount: Int, val timestamp: String) {
+class SqlPersistor(val timestamp: String) {
 
     companion object {
         val logger = LoggerFactory.getLogger(SqlPersistor::class.java)
@@ -25,7 +25,7 @@ class SqlPersistor(val algoCount: Int, val timestamp: String) {
         AlgoType.values()
     }
 
-    fun writeRecords(payload: DbPayload, tj: TargetJndi): Boolean {
+    fun writeRecords(payload: DbPayload, tj: TargetJndi) {
         JNDIUtils.getJndiConnection(tj.jndiName, tj.context).use {conn ->
             conn.autoCommit = false
             try {
@@ -99,6 +99,5 @@ class SqlPersistor(val algoCount: Int, val timestamp: String) {
                 throw sqlEx
             }
         }
-        return true;
     }
 }

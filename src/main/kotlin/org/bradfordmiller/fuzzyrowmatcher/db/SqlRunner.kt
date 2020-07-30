@@ -26,7 +26,7 @@ class SqlRunner {
                             stmt.executeUpdate("PRAGMA foreign_keys = ON;")
                             content
                         }
-                        else -> throw NotFoundException("Database vendor not ")
+                        else -> throw NotFoundException("Database vendor not recognized.")
                     }
             return formattedSql.replace("**TIMESTAMP**", timestamp)
         }

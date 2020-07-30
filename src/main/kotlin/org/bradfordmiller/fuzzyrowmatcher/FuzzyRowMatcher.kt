@@ -3,6 +3,7 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
+import io.vavr.kotlin.stream
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation
@@ -12,6 +13,7 @@ import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoResult
 import org.bradfordmiller.fuzzyrowmatcher.algos.AlgoType
 import org.bradfordmiller.fuzzyrowmatcher.utils.Strings
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
+import org.bradfordmiller.fuzzyrowmatcher.consumer.DBConsumer
 import org.bradfordmiller.fuzzyrowmatcher.db.*
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.bradfordmiller.sqlutils.SqlUtils
@@ -20,18 +22,24 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.RuntimeException
 import java.sql.ResultSet
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 data class AlgoStats(val min: Number, val firstQuartile: Double, val median: Double, val thirdQuartile: Double, val max: Number, val mean: Double, val stddeviation: Double)
 data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>)
 
-class FuzzyRowMatcher(private val config: Config) {
+class FuzzyRowMatcherProducer(
+   private val config: Config,
+   private val producerQueue: ArrayBlockingQueue<DbPayload>?,
+   private val statsQueue: ArrayBlockingQueue<FuzzyRowMatcherRpt>
+   ): Runnable {
 
     companion object {
-        val logger: Logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
+        val logger = LoggerFactory.getLogger(FuzzyRowMatcherProducer::class.java)
     }
 
-    fun fuzzyMatch(): FuzzyRowMatcherRpt {
-
+    override fun run() {
         val ds = JNDIUtils.getDataSource(config.sourceJndi.jndiName, config.sourceJndi.context).left
         val hashColumns = config.sourceJndi.hashKeys
         val sql = config.sourceJndi.sql
@@ -43,20 +51,19 @@ class FuzzyRowMatcher(private val config: Config) {
         val commitSize = config.dbCommitSize
         val offset = if(config.samplePercentage == 1) 0 else config.samplePercentage
         val targetJndi = config.targetJndi
+        val persistData = targetJndi != null
 
-        val timestamp = (System.currentTimeMillis() / 1000).toString()
-        val sqlPersistor = SqlPersistor(algoSet.size, timestamp)
         val jsonRecords = mutableListOf<JsonRecord>()
         val scoreRecords = mutableListOf<ScoreRecord?>()
         val bitVectorList = mutableListOf<List<AlgoResult>>()
 
         val algoResults = mutableMapOf<AlgoType, MutableList<Number>>(
-            AlgoType.FuzzySimilarity to mutableListOf(),
-            AlgoType.LevenshteinDistance to mutableListOf(),
-            AlgoType.HammingDistance to mutableListOf(),
-            AlgoType.JaccardDistance to mutableListOf(),
-            AlgoType.CosineDistance to mutableListOf(),
-            AlgoType.JaroDistance to mutableListOf()
+                AlgoType.FuzzySimilarity to mutableListOf(),
+                AlgoType.LevenshteinDistance to mutableListOf(),
+                AlgoType.HammingDistance to mutableListOf(),
+                AlgoType.JaccardDistance to mutableListOf(),
+                AlgoType.CosineDistance to mutableListOf(),
+                AlgoType.JaroDistance to mutableListOf()
         )
 
         val standardDeviation = StandardDeviation()
@@ -66,21 +73,19 @@ class FuzzyRowMatcher(private val config: Config) {
         var scoreCount = 0L
         var rowCount = 1L
 
-        config.targetJndi?.let { tj ->
-          logger.info("Beginning table creation....")
-          val status = SqlRunner.runScript(tj.jndiName, tj.context, timestamp)
-          logger.info("Tables successfully created")
-          if(!status)
-              throw RuntimeException("Failed to build database tables")
-        }
-
         fun loadRecords(jsonRecords: MutableList<JsonRecord>, scoreRecords: MutableList<ScoreRecord?>) {
-            if(targetJndi != null) {
-                val dbPayload = DbPayload(jsonRecords, scoreRecords)
-                sqlPersistor.writeRecords(dbPayload, targetJndi)
-                jsonRecords.clear()
-                scoreRecords.clear()
-            }
+            val copyJson = mutableListOf<JsonRecord>()
+            val copyScores = mutableListOf<ScoreRecord?>()
+
+            copyJson.addAll(jsonRecords)
+            copyScores.addAll(scoreRecords)
+
+            val dbPayload = DbPayload(copyJson, copyScores)
+
+            producerQueue?.put(dbPayload)
+
+            jsonRecords.clear()
+            scoreRecords.clear()
         }
 
         logger.info("Beginning fuzzy matching process...")
@@ -117,7 +122,7 @@ class FuzzyRowMatcher(private val config: Config) {
                             if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
                                 duplicates += 1
-                                //logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
+                                logger.trace("Duplicate found: $currentRowData is identical to $rowData. Skipping comparison")
                                 continue
                             }
                             //First check if the row qualifies based on the number of characters in each string
@@ -156,7 +161,7 @@ class FuzzyRowMatcher(private val config: Config) {
 
                             scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
-                            if (jsonRecords.size % commitSize == 0L) {
+                            if (persistData && (jsonRecords.size % commitSize == 0L)) {
                                 loadRecords(jsonRecords, scoreRecords)
                             }
                             if(offset == 0)
@@ -168,7 +173,9 @@ class FuzzyRowMatcher(private val config: Config) {
 
                         rs.absolute(rowIndex)
                     }
-                    loadRecords(jsonRecords, scoreRecords)
+                    if(persistData)
+                        loadRecords(jsonRecords, scoreRecords)
+
                     logger.info("Fuzzy match is complete. $comparisonCount comparisons calculated and $scoreCount successful matches. $duplicates times duplicate values were detected.")
                 }
             }
@@ -183,18 +190,91 @@ class FuzzyRowMatcher(private val config: Config) {
         val algoStats = algoResults.map { ar ->
             val doubleList = ar.value.map { it.toDouble() }.toDoubleArray()
             ar.key to AlgoStats(
-                doubleList.min() as Number,
-                Percentile().evaluate(doubleList, 25.0),
-                Median().evaluate(doubleList),
-                Percentile().evaluate(doubleList, 75.0),
-                doubleList.max() as Number,
-                Mean().evaluate(doubleList),
-                standardDeviation.evaluate(doubleList)
+                    doubleList.min() as Number,
+                    Percentile().evaluate(doubleList, 25.0),
+                    Median().evaluate(doubleList),
+                    Percentile().evaluate(doubleList, 75.0),
+                    doubleList.max() as Number,
+                    Mean().evaluate(doubleList),
+                    standardDeviation.evaluate(doubleList)
             )
         }.toMap()
 
         logger.info("Calculating Statistics complete.")
 
-        return FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats)
+        val matchReport = FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats)
+
+        statsQueue.put(matchReport)
+    }
+}
+
+class FuzzyRowMatcher(private val config: Config) {
+
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
+    }
+
+    fun fuzzyMatch(): FuzzyRowMatcherRpt {
+
+        val statsQueue = ArrayBlockingQueue<FuzzyRowMatcherRpt>(100)
+        val persistData = config.targetJndi != null
+
+        var producerQueue: ArrayBlockingQueue<DbPayload>? = null
+        var threadCount = 1
+        var streamComplete = false
+
+        lateinit var fuzzyRowMatcherRpt: FuzzyRowMatcherRpt
+        lateinit var dbConsumer: DBConsumer
+
+        if(config.targetJndi != null) {
+
+            val timestamp = (System.currentTimeMillis() / 1000).toString()
+
+            threadCount += 1
+            producerQueue = ArrayBlockingQueue(100)
+            dbConsumer = DBConsumer(producerQueue, config.targetJndi, timestamp)
+
+            //Prep table
+            config.targetJndi.let { tj ->
+                logger.info("Beginning table creation....")
+                val status = SqlRunner.runScript(tj.jndiName, tj.context, timestamp)
+                logger.info("Tables successfully created")
+                if (!status)
+                    throw RuntimeException("Failed to build database tables")
+            }
+        }
+
+        val fuzzyRowMatcherProducer = FuzzyRowMatcherProducer(config, producerQueue, statsQueue)
+
+        val executorService = Executors.newFixedThreadPool(threadCount)
+        executorService.execute(fuzzyRowMatcherProducer)
+        logger.info("Producer thread started")
+
+        if(persistData) {
+            executorService.execute(dbConsumer)
+            logger.info("Database consumer thread started")
+        }
+
+        while(!streamComplete) {
+            fuzzyRowMatcherRpt = statsQueue.take()
+            streamComplete = true
+        }
+
+        executorService.shutdown()
+
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow()
+            }
+        } catch(iex:InterruptedException) {
+            executorService.shutdownNow()
+            Thread.currentThread().interrupt()
+            logger.error(iex.message)
+            throw iex
+        }
+
+        logger.info("All consuming services are complete....shutting down.")
+
+        return fuzzyRowMatcherRpt
     }
 }
