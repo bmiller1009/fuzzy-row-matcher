@@ -187,7 +187,7 @@ class FuzzyRowMatcherProducer(
             algoResults[bv.algoType]?.add(bv.score)
         }
 
-        val algoStats = algoResults.map { ar ->
+        val algoStats = algoResults.filter{it.value.size > 0}.map { ar ->
             val doubleList = ar.value.map { it.toDouble() }.toDoubleArray()
             ar.key to AlgoStats(
                     doubleList.min() as Number,

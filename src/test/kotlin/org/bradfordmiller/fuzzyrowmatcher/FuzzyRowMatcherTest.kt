@@ -50,4 +50,27 @@ class FuzzyRowMatcherTest {
         val success = SqlRunner.runScript(tj.jndiName, tj.context, timestamp)
         assert(success)
     }
+
+    @Test
+    fun testSourceAndSingleAlgo() {
+        val hashColumns = mutableSetOf("street","city", "state", "zip", "price")
+        val sourceJndi =
+                SourceJndi(
+                        "RealEstateIn",
+                        "default_ds",
+                        "SELECT * FROM Sacramentorealestatetransactions", //LIMIT 10",
+                        hashColumns
+                )
+        //Add defaults for each algos
+        val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .applyJaroDistance(98.0)
+                        .build()
+
+        val frm = FuzzyRowMatcher(config)
+        val result = frm.fuzzyMatch()
+        println(result)
+        assert(true)
+    }
 }
