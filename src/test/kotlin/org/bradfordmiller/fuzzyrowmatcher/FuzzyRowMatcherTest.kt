@@ -53,13 +53,11 @@ class FuzzyRowMatcherTest {
 
     @Test
     fun testSourceAndSingleAlgo() {
-        val hashColumns = mutableSetOf("street","city", "state", "zip", "price")
         val sourceJndi =
                 SourceJndi(
                         "RealEstateIn",
                         "default_ds",
-                        "SELECT * FROM Sacramentorealestatetransactions", //LIMIT 10",
-                        hashColumns
+                        "Sacramentorealestatetransactions"
                 )
         //Add defaults for each algos
         val config =

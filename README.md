@@ -108,9 +108,10 @@ The library uses the [builder](https://www.baeldung.com/kotlin-builder-pattern) 
 
 There are a bunch of options which can be configured as part of a fuzzy matching process.  Let's start with the basics. Use the **_Config_** class to set up the fuzzy matching job.  This object will be passed into the **_FuzzyRowMatcher_** class as part of the instantiation of the **_FuzzyRowMatcher_** class.  
 
-The only _required_ input to deduper is a JDBC souce in the form of a JNDI Connection.  This is set up using the SourceJndi class.  Here is some Kotlin code which instantiates a **_SourceJndi_** object. 
+The only _required_ inputs to fuzzy-row-matcher are a JDBC souce in the form of a JNDI Connection and at least one algorithm and it's threshold value.  This is set up using the SourceJndi class.  Here is some Kotlin code which instantiates a **_SourceJndi_** object. 
 ```kotlin
-import org.bradfordmiller.deduper.config.SourceJndi  
+import org.bradfordmiller.org.bradfordmiller.fuzzyrowmatcher.config.config.SourceJndi  
+
 ...  
 val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions")
 ```
