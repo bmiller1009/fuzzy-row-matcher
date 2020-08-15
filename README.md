@@ -108,10 +108,9 @@ The library uses the [builder](https://www.baeldung.com/kotlin-builder-pattern) 
 
 There are a bunch of options which can be configured as part of a fuzzy matching process.  Let's start with the basics. Use the **_Config_** class to set up the fuzzy matching job.  This object will be passed into the **_FuzzyRowMatcher_** class as part of the instantiation of the **_FuzzyRowMatcher_** class.  
 
-The only _required_ inputs to fuzzy-row-matcher are a JDBC souce in the form of a JNDI Connection and at least one algorithm and it's threshold value.  This is set up using the SourceJndi class.  Here is some Kotlin code which instantiates a **_SourceJndi_** object. 
+The only _required_ inputs to fuzzy-row-matcher are a JDBC souce in the form of a JNDI Connection and at least one algorithm and it's threshold value.  The JNDI connection is set up using the SourceJndi class.  Here is some Kotlin code which instantiates a **_SourceJndi_** object. 
 ```kotlin
-import org.bradfordmiller.org.bradfordmiller.fuzzyrowmatcher.config.config.SourceJndi  
-
+import org.bradfordmiller.fuzzyrowmatcher.config.config.SourceJndi
 ...  
 val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions")
 ```
@@ -119,6 +118,38 @@ In the above case "RealEstateIn" is the jndi name, "default\_ds" is the context 
 
 By default, a "SELECT *" query will be issued against the table ("Sacramentorealestatetransactions" in this case). It is also possible to pass in a query, rather than a table name, like so:
 ```kotlin
-import org.bradfordmiller.deduper.config.SourceJndi  
+import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi  
 ...  
 val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "SELECT street from Sacramentorealestatetransactions")
+```
+Fuzzy Row Matcher is an engine which can detect row similarity within a table or flat file, so by default it will use every value in the row to create a duplicate. The API also accepts a subset of columns in the table on which to "fuzzily match".  Here is some Kotlin code which demonstrates this:
+```kotlin
+import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi  
+...  
+val hashColumns = mutableSetOf("street","city", "state", "zip", "price")  
+val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions", hashColumns)
+```
+Now only the columns specified in the column set will be considered for detecting duplicates.
+
+### Complete example
+```kotlin
+import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi
+import org.bradfordmiller.deduper.Deduper
+import org.bradfordmiller.fuzzyrowmatcher.config.Config
+...
+val hashColumns = mutableSetOf("street","city", "state", "zip", "price")  
+val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions", hashColumns)
+
+val config = 
+Config.ConfigBuilder()
+    .sourceJndi(csvSourceJndi)
+    .build()
+
+val deduper = Deduper(config)
+
+val report = deduper.dedupe()
+
+println(report)
+println(report.dupes)
+```    
+The output of this run is:
