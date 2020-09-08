@@ -168,4 +168,16 @@ Also note that each algorithm returns a set of **seven** statistics for the run:
 6) The mean threshold found (in the above output, **75.04290962954407**)
 7) The standard deviation of the threshold found (in the above output, **3.0175386794224877**)
 
-If more algorithms are applied, their statistics will also appear in the **algos** variable.
+If more algorithms are applied, their statistics will also appear in the **algos** variable.  Note also in the above example **all** columns in each row were concatenated together because a list of columns was not provided in the **_SourceJndi_** object instantiation.
+
+###List of algorithms availability for fuzzy matching:
+
+Fuzzy Matcher has the following algorithms available:
+
+1) [Jaro-Winkler Distance](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance)
+2) [Levenshtein Distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
+3) [Hamming Distance](https://en.wikipedia.org/wiki/Hamming_distance)
+4) [Jaccard Distance](https://en.wikipedia.org/wiki/Jaccard_index)
+5) [Cosine Distance](https://en.wikipedia.org/wiki/Cosine_similarity)
+6) [Fuzzy Similarity](https://commons.apache.org/proper/commons-text/apidocs/org/apache/commons/text/similarity/FuzzyScore.html)
+
