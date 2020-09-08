@@ -3,7 +3,6 @@
  */
 package org.bradfordmiller.fuzzyrowmatcher
 
-import io.vavr.kotlin.stream
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.math3.stat.descriptive.moment.Mean
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation

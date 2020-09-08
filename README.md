@@ -131,25 +131,41 @@ val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealesta
 ```
 Now only the columns specified in the column set will be considered for detecting duplicates.
 
-### Complete example
+### Complete example with Jaro-Winkler scoring algorithm
 ```kotlin
 import org.bradfordmiller.fuzzyrowmatcher.config.SourceJndi
-import org.bradfordmiller.deduper.Deduper
+import org.bradfordmiller.fuzzyrowmatcher.FuzzyRowMatcher
 import org.bradfordmiller.fuzzyrowmatcher.config.Config
 ...
-val hashColumns = mutableSetOf("street","city", "state", "zip", "price")  
-val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions", hashColumns)
+
+val csvSourceJndi = SourceJndi("RealEstateIn", "default_ds", "Sacramentorealestatetransactions")
 
 val config = 
 Config.ConfigBuilder()
     .sourceJndi(csvSourceJndi)
+    .applyJaroDistance(98.0)
     .build()
 
-val deduper = Deduper(config)
+val frm = FuzzyRowMatcher(config)
 
-val report = deduper.dedupe()
+val result = frm.fuzzyMatch()
 
-println(report)
-println(report.dupes)
+println(result)
 ```    
 The output of this run is:
+
+     FuzzyRowMatcherRpt(rowCount=987, comparisonCount=485606, matchCount=7, duplicateCount=0, algos={JaroDistance=AlgoStats(min=63.25954223397656, firstQuartile=73.01287149712347, median=74.83295979588313, thirdQuartile=76.85458437015583, max=100.0, mean=75.04290962954407, stddeviation=3.0175386794224877)})
+
+So this run of the FuzzyMatch found a total of **987** rows, ran a total of **485606** comparisons against the table, and found a total of **7** rows which are similar.  Similar in this case means that there were seven rows in the table which passed the **98.0** percent similar threshold of the JaroWinkler distance algorithm.
+
+Also note that each algorithm returns a set of **seven** statistics for the run:
+
+1) The minimum threshold found (in the above output, **63.25954223397656**)
+2) The first quartile of the threshold found (in the above output, **73.01287149712347**)
+3) The median threshold found (in the above output, **74.83295979588313**)
+4) The third quartile of the threshold found (in the above output, **76.85458437015583**)
+5) The maximum threshold found (in the above output, **100.0**)
+6) The mean threshold found (in the above output, **75.04290962954407**)
+7) The standard deviation of the threshold found (in the above output, **3.0175386794224877**)
+
+If more algorithms are applied, their statistics will also appear in the **algos** variable.
