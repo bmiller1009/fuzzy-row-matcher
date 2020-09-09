@@ -117,4 +117,28 @@ class FuzzyRowMatcherTest {
         println(result)
         assert(true)
     }
+
+    @Test
+    fun testSourceAndMultiAlgoNotAggregatedWithTarget() {
+        val sourceJndi =
+                SourceJndi(
+                        "RealEstateIn",
+                        "default_ds",
+                        "Sacramentorealestatetransactions"
+                )
+        //Add defaults for each algos
+        val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+                        .applyJaroDistance(98.0)
+                        .applyLevenshtein(5)
+                        .aggregateScoreResults(false)
+                        .build()
+
+        val frm = FuzzyRowMatcher(config)
+        val result = frm.fuzzyMatch()
+        println(result)
+        assert(true)
+    }
  }

@@ -59,13 +59,13 @@ Configuation information is stored using the [simple-jndi](https://github.com/h-
 API so a [jndi.properties](https://github.com/bmiller1009/fuzzy-row-matcher/blob/master/src/test/resources/jndi.properties) file will need to be present
 in src/main/resources and correctly configured for this library to work. 
 
-### Configuring jndi
+### <a id="conf-jndi">Configuring jndi</a>
 See [jndi.properties](https://github.com/bmiller1009/fuzzy-row-matcher/blob/master/src/test/resources/jndi.properties) sample file
 in this project. This will need to be configured and dropped into **_src/main/resources_** for the API to work.  Actual jndi
 files will be searched and loaded based upon the path in the **_org.osjava.sj.root_** property setting.  In the example file 
 for this project, you will see the path is **_src/main/resources/jndi_**.  
 
-#### Configuring jndi contexts
+#### <a id="conf-jndi-contexts">Configuring jndi contexts</a>
 Jndi property files can be dropped into the **_org.osjava.sj.root_** configured path. In our case, that path is **_src/main/resources/jndi_**.  There is one context that fuzzy-row-matcher can handle:  A **javax.sql.DataSource**
 
 Datasources are used when reading or writing data using a JDBC interface. These concepts will be explained in detail later. You can see a sample jndi context file [here](https://github.com/bmiller1009/fuzzy-row-matcher/blob/master/src/test/resources/jndi/default_ds.properties).  Note the location of the context file is in the directory set in **_org.osjava.sj.root_**:  **_src/test/resources/jndi_**.  All jndi context files must be placed under this directory.
@@ -200,13 +200,14 @@ The Fuzzy Match engine has the ability to ignore duplicates if you are only inte
 ```kotlin
  .ignoreDupes(true)
  ``` 
-method.  If this flag is set to true then the fuzzy comparisons will not be done when an exact match is detected.  This can speed up processing if the table you are interrogating has lots of exact matches.  The default value for this is **false**.
+method on the _**Config**_ object.  If this flag is set to true then the fuzzy comparisons will not be done when an exact match is detected.  This can speed up processing if the table you are interrogating has lots of exact matches.  The default value for this is **false**.
 
 ### String length differences
 Another optimization the engine contains is in regards to string length differences.  You can tell the engine to ignore strings which differ greatly in their length.  The method for this is 
 ```kotlin
  .strLenDeltaPct(50.0)
 ``` 
+on the _**Config**_ object
 In this case, the engine will not perform similarity comparisons on strings which differ in length by more than **50 percent**.
 
 ### Sampling the data
@@ -214,9 +215,27 @@ Fuzzy Matcher can also be configured to run on a partial row set. Using the meth
 ```kotlin
 .samplePercentage(25) 
 ```
+on the _**Config**_ object
 for example, will only run comparisons on **25 percent** of the data.
 
 ### Persisting the score results
+Thus far we have only seen examples of the Fuzzy Matcher aggregating information about statistics and matches, now we will see how to persist the results of the Fuzzy Match run.  The API has a setting for a target JNDI location as seen here:
+```kotlin
+.targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+```
+A full example looks like this:
+
+```kotlin
+val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+                        .applyJaroDistance(98.0)
+                        .applyLevenshtein(5)
+                        .aggregateScoreResults(false)
+                        .build()
+```
+The _**TargetJndi object**_ accepts a named jndi resource, in this case "SqlLiteTest" and a context, in this case "default_ds".  See the [Configuring JNDI](#conf-jndi) and [Configuring JNDI Contexts](#conf-jndi-context) sections on how to add JNDI entries to Fuzzy Matcher.
 
 
 
