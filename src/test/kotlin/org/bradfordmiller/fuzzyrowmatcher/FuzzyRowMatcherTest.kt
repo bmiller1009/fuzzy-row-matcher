@@ -71,4 +71,50 @@ class FuzzyRowMatcherTest {
         println(result)
         assert(true)
     }
-}
+
+    @Test
+    fun testSourceAndMultiAlgoAggregated() {
+        val sourceJndi =
+                SourceJndi(
+                        "RealEstateIn",
+                        "default_ds",
+                        "Sacramentorealestatetransactions"
+                )
+        //Add defaults for each algos
+        val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .applyJaroDistance(98.0)
+                        .applyLevenshtein(5)
+                        .aggregateScoreResults(true)
+                        .build()
+
+        val frm = FuzzyRowMatcher(config)
+        val result = frm.fuzzyMatch()
+        println(result)
+        assert(true)
+    }
+
+    @Test
+    fun testSourceAndMultiAlgoNotAggregated() {
+        val sourceJndi =
+                SourceJndi(
+                        "RealEstateIn",
+                        "default_ds",
+                        "Sacramentorealestatetransactions"
+                )
+        //Add defaults for each algos
+        val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .applyJaroDistance(98.0)
+                        .applyLevenshtein(5)
+                        .aggregateScoreResults(false)
+                        .build()
+
+        val frm = FuzzyRowMatcher(config)
+        val result = frm.fuzzyMatch()
+        println(result)
+        assert(true)
+    }
+ }

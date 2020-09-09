@@ -181,3 +181,64 @@ Fuzzy Matcher has the following algorithms available:
 5) [Cosine Distance](https://en.wikipedia.org/wiki/Cosine_similarity)
 6) [Fuzzy Similarity](https://commons.apache.org/proper/commons-text/apidocs/org/apache/commons/text/similarity/FuzzyScore.html)
 
+The results of these algorithms can be combined for the qualification of similarity, or each algorithm can be applied independently.  There is a setting in the config for controlling this:
+
+```kotlin
+val config =
+    Config.ConfigBuilder()
+            .sourceJndi(sourceJndi)
+            .applyJaroDistance(98.0)
+            .applyLevenshtein(5)
+            .aggregateScoreResults(true)
+            .build()
+```
+
+In this example, the Jaro-Winkler threshold is set to **98** percent, and the Levenshtein algorithm is set to **5**.  Because aggregateScoreResults is set to **true**, only rows which pass the threshold of 98 on Jaro **and** 5 on Levenshtein will be considered "similar".  By default, aggregateScoreResults is set to **false**.  In the case where aggregateScoreResults is set to **false** rows will be considered "similar" if the Jaro threshold of 98 **OR** a Levenshtein threshold of **5** is met. 
+
+###Handling duplicates
+The Fuzzy Match engine has the ability to ignore duplicates if you are only interested in similar but not exact matches.  This is controlled by the 
+```kotlin
+ .ignoreDupes(true)
+ ``` 
+method.  If this flag is set to true then the fuzzy comparisons will not be done when an exact match is detected.  This can speed up processing if the table you are interrogating has lots of exact matches.  The default value for this is **false**.
+
+###String length differences
+Another optimization the engine contains is in regards to string length differences.  You can tell the engine to ignore strings which differ greatly in their length.  The method for this is 
+```kotlin
+ .strLenDeltaPct(50.0)
+``` 
+In this case, the engine will not perform similarity comparisons on strings which differ in length by more than **50 percent**.
+
+###Sampling the data
+Fuzzy Matcher can also be configured to run on a partial row set. Using the method 
+```kotlin
+.samplePercentage(25) 
+```
+for example, will only run comparisons on **25 percent** of the data.
+
+
+
+## Built With
+
+* [kotlin](https://kotlinlang.org/) - The programming language
+* [simple-jndi](https://github.com/h-thurow/Simple-JNDI) - source and target configuration management
+* [opencsv](http://opencsv.sourceforge.net/) - formatting output of flat files
+* [csvjdbc](http://csvjdbc.sourceforge.net/) - Provides a query API on top of csv
+
+## Versioning
+
+For the versions available, see the [tags on this repository](https://github.com/bmiller1009/fuzzy-row-matcher/tags). 
+
+## Authors
+
+* **Bradford Miller** - *Initial work* - [bfm](https://github.com/bmiller1009)
+
+See also the list of [contributors](https://github.com/bmiller1009/fuzzy-row-matcher/contributors) who participated in this project.
+
+## License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details
+
+## Acknowledgments
+
+* Thanks to [PurpleBooth](https://gist.github.com/PurpleBooth) for the README template as seen [here](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2)
