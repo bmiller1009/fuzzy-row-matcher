@@ -26,12 +26,13 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 data class AlgoStats(val min: Number, val firstQuartile: Double, val median: Double, val thirdQuartile: Double, val max: Number, val mean: Double, val stddeviation: Double)
-data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>)
+data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>, val targetTimeStamp: String?)
 
 class FuzzyRowMatcherProducer(
    private val config: Config,
    private val producerQueue: ArrayBlockingQueue<DbPayload>?,
-   private val statsQueue: ArrayBlockingQueue<FuzzyRowMatcherRpt>
+   private val statsQueue: ArrayBlockingQueue<FuzzyRowMatcherRpt>,
+   private val timestamp: String?
    ): Runnable {
 
     companion object {
@@ -201,7 +202,7 @@ class FuzzyRowMatcherProducer(
 
         logger.info("Calculating Statistics complete.")
 
-        val matchReport = FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats)
+        val matchReport = FuzzyRowMatcherRpt(rowCount, comparisonCount, scoreCount, duplicates, algoStats, timestamp)
 
         statsQueue.put(matchReport)
     }
@@ -224,10 +225,11 @@ class FuzzyRowMatcher(private val config: Config) {
 
         lateinit var fuzzyRowMatcherRpt: FuzzyRowMatcherRpt
         lateinit var dbConsumer: DBConsumer
+        lateinit var timestamp: String
 
         if(config.targetJndi != null) {
 
-            val timestamp = (System.currentTimeMillis() / 1000).toString()
+            timestamp = (System.currentTimeMillis() / 1000).toString()
 
             threadCount += 1
             producerQueue = ArrayBlockingQueue(100)
@@ -243,7 +245,7 @@ class FuzzyRowMatcher(private val config: Config) {
             }
         }
 
-        val fuzzyRowMatcherProducer = FuzzyRowMatcherProducer(config, producerQueue, statsQueue)
+        val fuzzyRowMatcherProducer = FuzzyRowMatcherProducer(config, producerQueue, statsQueue, timestamp)
 
         val executorService = Executors.newFixedThreadPool(threadCount)
         executorService.execute(fuzzyRowMatcherProducer)
