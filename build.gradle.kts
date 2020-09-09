@@ -111,7 +111,6 @@ tasks {
     }
 }
 
-
 application {
     // Define the main class for the application.
     mainClassName = "org.bradfordmiller.fuzzymatcher.DriverKt"

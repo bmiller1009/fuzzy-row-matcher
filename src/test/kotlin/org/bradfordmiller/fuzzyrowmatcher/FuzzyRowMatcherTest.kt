@@ -34,7 +34,6 @@ class FuzzyRowMatcherTest {
                 .strLenDeltaPct(50.0)
                 .aggregateScoreResults(false)
                 .ignoreDupes(true)
-                //.samplePercentage(25)
                 .build()
 
         val frm = FuzzyRowMatcher(config)
@@ -134,6 +133,31 @@ class FuzzyRowMatcherTest {
                         .applyJaroDistance(98.0)
                         .applyLevenshtein(5)
                         .aggregateScoreResults(false)
+                        .build()
+
+        val frm = FuzzyRowMatcher(config)
+        val result = frm.fuzzyMatch()
+        println(result)
+        assert(true)
+    }
+
+    @Test
+    fun testSourceAndMultiAlgoNotAggregatedWithTargetWithSample() {
+        val sourceJndi =
+                SourceJndi(
+                        "RealEstateIn",
+                        "default_ds",
+                        "Sacramentorealestatetransactions"
+                )
+        //Add defaults for each algos
+        val config =
+                Config.ConfigBuilder()
+                        .sourceJndi(sourceJndi)
+                        .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+                        .applyJaroDistance(98.0)
+                        .applyLevenshtein(5)
+                        .aggregateScoreResults(false)
+                        .samplePercentage(25)
                         .build()
 
         val frm = FuzzyRowMatcher(config)
