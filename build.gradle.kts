@@ -38,11 +38,6 @@ tasks.create("set-defaults") {
         group = "org.bradfordmiller"
         version = softwareVersion
         inputStream.close()
-
-        /*val source = File("version.properties")
-        val dest = File("src/dist/lib/conf/version.properties")
-
-        FileUtils.copyFile(source, dest)*/
     }
     doLast {
         println("Current software version is $version")
@@ -92,7 +87,7 @@ dependencies {
     implementation("org.mybatis", "mybatis", "3.5.5")
     implementation("org.xerial", "sqlite-jdbc","3.32.3.2")
     implementation("org.apache.commons", "commons-math3", "3.6.1")
-            // Use the Kotlin test library.
+    // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
         isTransitive = true
@@ -109,25 +104,6 @@ tasks.matching{it.name != "set-defaults"}.forEach {t ->
     t.dependsOn("set-defaults")
 }
 
-
-
-/*tasks.named<CreateStartScripts>("startScripts") {
-    classpath = files(classpath) + files("src/dist/lib/conf")
-}*/
-
-/*distributions {
-    getByName("main") {
-        contents {
-            from("src/dist/bin/conf/jndi") {
-                into("bin/conf/jndi")
-            }
-            from("registration") {
-                into("bin/registration")
-            }
-        }
-    }
-}*/
-
 tasks {
     val dokka by getting(DokkaTask::class) {
         outputFormat = "html"
@@ -142,5 +118,4 @@ application {
 
     group = "org.bradfordmiller.fuzzymatcher"
     version = "$version"
-
 }
