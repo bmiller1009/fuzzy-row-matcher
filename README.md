@@ -237,6 +237,95 @@ val config =
 ```
 The _**TargetJndi object**_ accepts a named jndi resource, in this case "SqlLiteTest" and a context, in this case "default_ds".  See the [Configuring JNDI](#conf-jndi) and [Configuring JNDI Contexts](#conf-jndi-contexts) sections on how to add JNDI entries to Fuzzy Matcher.  **Note that as of right, now the only supported output is to SqlLite**.
 
+The output created by Fuzzy Matcher consists of two tables and a view. The tables are created with an appended timestamp for convenience so that we can avoid table name collisions.
+
+The templates for the documentation below can be found [here](https://github.com/bmiller1009/fuzzy-row-matcher/blob/master/src/main/resources/dbscripts/bootstrap_sqlite.sql)
+
+The first table is simply a "jsonified" view of the row being compared, and has a schema which is as follows:
+
+```sql
+CREATE TABLE json_data_**TIMESTAMP** (
+	id	INTEGER NOT NULL,
+	json_row	TEXT NOT NULL,
+	PRIMARY KEY(id)
+);
+```
+
+Again, this table has a unique id and a string which represents the row in a "jsonified" format. Here is an example row:
+
+id: 1
+json_row: 
+```json
+{"zip":"95838","baths":"1","city":"SACRAMENTO","sale_date":"Wed May 21 00:00:00 EDT 2008","street":"3526 HIGH ST","price":"59222","latitude":"38.631913","state":"CA","beds":"2","type":"Residential","sq__ft":"836","longitude":"-121.434879"}
+```
+
+The second table contains qualifying "similar" rows and their scores. The schema for the "scores" table is as follows:
+
+```sql
+CREATE TABLE scores_**TIMESTAMP** (
+	id	INTEGER NOT NULL,
+	json_data1_row_id	INTEGER NOT NULL,
+	json_data2_row_id	INTEGER NOT NULL,
+	jaro_dist_score	REAL NULL,
+	levenshtein_distance_score	INTEGER NULL,
+	hamming_distance_score	INTEGER NULL,
+	jaccard_distance_score	REAL NULL,
+	cosine_distance_score	REAL NULL,
+	fuzzy_similiarity_score	INTEGER NULL,
+	FOREIGN KEY(json_data1_row_id) REFERENCES json_data(id),
+	FOREIGN KEY(json_data2_row_id) REFERENCES json_data(id),
+	PRIMARY KEY(id,json_data1_row_id,json_data2_row_id)
+);
+```
+
+This table contains the id of each row being compared (foreign keys link back to the json_data table described earlier), as well as each algorithm scored calculated between the two rows.
+
+Lastly, there is a view which ties everything together for ease of viewing the results:
+
+```sql
+CREATE VIEW final_scores_**TIMESTAMP** AS
+SELECT a.json_row json_row_1, c.json_row json_row_2,
+b.jaro_dist_score,
+	b.levenshtein_distance_score	,
+	b.hamming_distance_score	,
+	b.jaccard_distance_score	,
+	b.cosine_distance_score	,
+	b.fuzzy_similiarity_score
+FROM
+json_data_**TIMESTAMP** a
+INNER JOIN scores_**TIMESTAMP** b ON a.id = b.json_data1_row_id
+INNER JOIN json_data_**TIMESTAMP** c ON c.id = b.json_data2_row_id;
+```
+
+This view simply links back the actual json strings as well as the scores for a simpler viewing of the run.
+
+**Note that score values will be populated as NULL in the **scores** table for those algorithms which were not chosen for the particular run.**
+
+Future versions of the software will support more database types to output results to (IE, postgres, mysql, oracle, etc)
+
+### Fully configured example with all flags being toggled:
+
+```kotlin
+val config =
+        Config.ConfigBuilder()
+            .sourceJndi(sourceJndi)
+            .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+            .applyJaroDistance(98.0)
+            .applyLevenshtein(5)
+            .applyFuzzyScore(90)
+            .applyCosineDistance(30.0)
+            .applyHammingDistance(15)
+            .applyJaccardDistance(90.0)
+            .strLenDeltaPct(50.0)
+            .aggregateScoreResults(false)
+            .ignoreDupes(true)
+            .samplePercentage(25)
+            .build()
+
+    val frm = FuzzyRowMatcher(config)
+    val result = frm.fuzzyMatch()
+```
+
 ## Built With
 
 * [kotlin](https://kotlinlang.org/) - The programming language
