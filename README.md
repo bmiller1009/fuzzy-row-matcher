@@ -222,8 +222,9 @@ for example, will only run comparisons on **25 percent** of the data.
 
 * [kotlin](https://kotlinlang.org/) - The programming language
 * [simple-jndi](https://github.com/h-thurow/Simple-JNDI) - source and target configuration management
-* [opencsv](http://opencsv.sourceforge.net/) - formatting output of flat files
 * [csvjdbc](http://csvjdbc.sourceforge.net/) - Provides a query API on top of csv
+* [apache-commons-text](https://commons.apache.org/proper/commons-text/) - For string distance and similarity algorithms
+* [apache-commons-math](https://commons.apache.org/proper/commons-math/) - For statistical calculations
 
 ## Versioning
 
