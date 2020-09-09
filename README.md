@@ -170,7 +170,7 @@ Also note that each algorithm returns a set of **seven** statistics for the run:
 
 If more algorithms are applied, their statistics will also appear in the **algos** variable.  Note also in the above example **all** columns in each row were concatenated together because a list of columns was not provided in the **_SourceJndi_** object instantiation.
 
-###List of algorithms availability for fuzzy matching:
+### List of algorithms availability for fuzzy matching:
 
 Fuzzy Matcher has the following algorithms available:
 
@@ -195,21 +195,21 @@ val config =
 
 In this example, the Jaro-Winkler threshold is set to **98** percent, and the Levenshtein algorithm is set to **5**.  Because aggregateScoreResults is set to **true**, only rows which pass the threshold of 98 on Jaro **and** 5 on Levenshtein will be considered "similar".  By default, aggregateScoreResults is set to **false**.  In the case where aggregateScoreResults is set to **false** rows will be considered "similar" if the Jaro threshold of 98 **OR** a Levenshtein threshold of **5** is met. 
 
-###Handling duplicates
+### Handling duplicates
 The Fuzzy Match engine has the ability to ignore duplicates if you are only interested in similar but not exact matches.  This is controlled by the 
 ```kotlin
  .ignoreDupes(true)
  ``` 
 method.  If this flag is set to true then the fuzzy comparisons will not be done when an exact match is detected.  This can speed up processing if the table you are interrogating has lots of exact matches.  The default value for this is **false**.
 
-###String length differences
+### String length differences
 Another optimization the engine contains is in regards to string length differences.  You can tell the engine to ignore strings which differ greatly in their length.  The method for this is 
 ```kotlin
  .strLenDeltaPct(50.0)
 ``` 
 In this case, the engine will not perform similarity comparisons on strings which differ in length by more than **50 percent**.
 
-###Sampling the data
+### Sampling the data
 Fuzzy Matcher can also be configured to run on a partial row set. Using the method 
 ```kotlin
 .samplePercentage(25) 
