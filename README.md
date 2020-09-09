@@ -216,6 +216,8 @@ Fuzzy Matcher can also be configured to run on a partial row set. Using the meth
 ```
 for example, will only run comparisons on **25 percent** of the data.
 
+### Persisting the score results
+
 
 
 ## Built With
