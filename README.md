@@ -235,9 +235,7 @@ val config =
                         .aggregateScoreResults(false)
                         .build()
 ```
-The _**TargetJndi object**_ accepts a named jndi resource, in this case "SqlLiteTest" and a context, in this case "default_ds".  See the [Configuring JNDI](#conf-jndi) and [Configuring JNDI Contexts](#conf-jndi-contexts) sections on how to add JNDI entries to Fuzzy Matcher.
-
-
+The _**TargetJndi object**_ accepts a named jndi resource, in this case "SqlLiteTest" and a context, in this case "default_ds".  See the [Configuring JNDI](#conf-jndi) and [Configuring JNDI Contexts](#conf-jndi-contexts) sections on how to add JNDI entries to Fuzzy Matcher.  **Note that as of right, now the only supported output is to SqlLite**.
 
 ## Built With
 
