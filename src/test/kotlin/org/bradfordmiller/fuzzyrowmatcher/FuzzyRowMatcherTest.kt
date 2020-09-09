@@ -110,6 +110,13 @@ class FuzzyRowMatcherTest {
                         "default_ds",
                         "Sacramentorealestatetransactions"
                 )
+
+        val algoMap = mutableMapOf(
+               AlgoType.JaroDistance to AlgoStats(63.25954223397656, 73.01287149712347, 74.83295979588313, 76.85458437015583, 100.0, 75.04290962954407, 3.0175386794224877)
+        )
+
+        val expectedReport = FuzzyRowMatcherRpt(987,485606, 7, 0, algoMap, null)
+
         //Add defaults for each algos
         val config =
                 Config.ConfigBuilder()
@@ -119,8 +126,12 @@ class FuzzyRowMatcherTest {
 
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
-        println(result)
-        assert(true)
+
+        assert(result.algos == expectedReport.algos)
+        assert(result.comparisonCount == expectedReport.comparisonCount)
+        assert(result.duplicateCount == expectedReport.duplicateCount)
+        assert(result.matchCount == expectedReport.matchCount)
+        assert(result.rowCount == expectedReport.rowCount)
     }
 
     @Test

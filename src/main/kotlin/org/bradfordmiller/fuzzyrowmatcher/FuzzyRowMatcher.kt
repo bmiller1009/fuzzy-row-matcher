@@ -222,10 +222,10 @@ class FuzzyRowMatcher(private val config: Config) {
         var producerQueue: ArrayBlockingQueue<DbPayload>? = null
         var threadCount = 1
         var streamComplete = false
+        var timestamp: String? = null
 
         lateinit var fuzzyRowMatcherRpt: FuzzyRowMatcherRpt
         lateinit var dbConsumer: DBConsumer
-        lateinit var timestamp: String
 
         if(config.targetJndi != null) {
 
