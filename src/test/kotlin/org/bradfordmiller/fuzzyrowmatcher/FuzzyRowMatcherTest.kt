@@ -142,6 +142,14 @@ class FuzzyRowMatcherTest {
                         "default_ds",
                         "Sacramentorealestatetransactions"
                 )
+
+        val algoMap = mutableMapOf(
+                AlgoType.LevenshteinDistance to AlgoStats(0.0, 43.0, 48.0, 52.0, 80.0, 47.31299860381222, 8.032522633529313),
+                AlgoType.JaroDistance to AlgoStats(63.25954223397656, 73.01287149712347, 74.83295979588313, 76.85458437015583, 100.0, 75.04290962954407, 3.0175386794224877)
+        )
+
+        val expectedReport = FuzzyRowMatcherRpt(987,971212, 6, 0, algoMap, null)
+
         //Add defaults for each algos
         val config =
                 Config.ConfigBuilder()
@@ -153,8 +161,12 @@ class FuzzyRowMatcherTest {
 
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
-        println(result)
-        assert(true)
+
+        assert(result.algos == expectedReport.algos)
+        assert(result.comparisonCount == expectedReport.comparisonCount)
+        assert(result.duplicateCount == expectedReport.duplicateCount)
+        assert(result.matchCount == expectedReport.matchCount)
+        assert(result.rowCount == expectedReport.rowCount)
     }
 
     @Test
@@ -165,6 +177,14 @@ class FuzzyRowMatcherTest {
                         "default_ds",
                         "Sacramentorealestatetransactions"
                 )
+
+        val algoMap = mutableMapOf(
+                AlgoType.LevenshteinDistance to AlgoStats(0.0, 43.0, 48.0, 52.0, 80.0, 47.31299860381222, 8.032522633529313),
+                AlgoType.JaroDistance to AlgoStats(63.25954223397656, 73.01287149712347, 74.83295979588313, 76.85458437015583, 100.0, 75.04290962954407, 3.0175386794224877)
+        )
+
+        val expectedReport = FuzzyRowMatcherRpt(987,971212, 39, 0, algoMap, null)
+
         //Add defaults for each algos
         val config =
                 Config.ConfigBuilder()
@@ -176,8 +196,12 @@ class FuzzyRowMatcherTest {
 
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
-        println(result)
-        assert(true)
+
+        assert(result.algos == expectedReport.algos)
+        assert(result.comparisonCount == expectedReport.comparisonCount)
+        assert(result.duplicateCount == expectedReport.duplicateCount)
+        assert(result.matchCount == expectedReport.matchCount)
+        assert(result.rowCount == expectedReport.rowCount)
     }
 
     @Test
@@ -188,11 +212,21 @@ class FuzzyRowMatcherTest {
                         "default_ds",
                         "Sacramentorealestatetransactions"
                 )
+
+        val targetJndi = TargetJndi("SqlLiteTest", "default_ds")
+
+        val algoMap = mutableMapOf(
+                AlgoType.LevenshteinDistance to AlgoStats(0.0, 43.0, 48.0, 52.0, 80.0, 47.31299860381222, 8.032522633529313),
+                AlgoType.JaroDistance to AlgoStats(63.25954223397656, 73.01287149712347, 74.83295979588313, 76.85458437015583, 100.0, 75.04290962954407, 3.0175386794224877)
+        )
+
+        val expectedReport = FuzzyRowMatcherRpt(987,971212, 39, 0, algoMap, null)
+
         //Add defaults for each algos
         val config =
                 Config.ConfigBuilder()
                         .sourceJndi(sourceJndi)
-                        .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
+                        .targetJndi(targetJndi)
                         .applyJaroDistance(98.0)
                         .applyLevenshtein(5)
                         .aggregateScoreResults(false)
@@ -200,32 +234,62 @@ class FuzzyRowMatcherTest {
 
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
-        println(result)
-        assert(true)
+        val viewName = "final_scores_${result.targetTimeStamp}"
+        val targetCount = getTargetCount(targetJndi, viewName)
+        val rowSample = getFirstRowFromTarget(targetJndi, viewName).joinToString()
+        val rowHash = DigestUtils.md5Hex(rowSample).toUpperCase()
+
+        assert(result.algos == expectedReport.algos)
+        assert(result.comparisonCount == expectedReport.comparisonCount)
+        assert(result.duplicateCount == expectedReport.duplicateCount)
+        assert(result.matchCount == expectedReport.matchCount)
+        assert(result.rowCount == expectedReport.rowCount)
+
+        assert(targetCount == 1L)
+        assert(rowHash == "CB90E543EE9DDB05DA2A543F0CDCBF1A")
     }
 
     @Test
-    fun testSourceAndMultiAlgoNotAggregatedWithTargetWithSample() {
+    fun testSourceAndAlgoNotAggregatedWithTargetWithSample() {
         val sourceJndi =
                 SourceJndi(
                         "RealEstateIn",
                         "default_ds",
                         "Sacramentorealestatetransactions"
                 )
+
+        val targetJndi = TargetJndi("SqlLiteTest", "default_ds")
+
+        val algoMap = mutableMapOf(
+                AlgoType.JaroDistance to AlgoStats(63.25954223397656, 73.01287149712347, 74.83295979588313, 76.85458437015583, 100.0, 75.04290962954407, 3.0175386794224877)
+        )
+
+        val expectedReport = FuzzyRowMatcherRpt(987,971212, 39, 0, algoMap, null)
+
         //Add defaults for each algos
         val config =
                 Config.ConfigBuilder()
                         .sourceJndi(sourceJndi)
-                        .targetJndi(TargetJndi("SqlLiteTest", "default_ds"))
-                        .applyJaroDistance(98.0)
-                        .applyLevenshtein(5)
+                        .targetJndi(targetJndi)
+                        .applyJaroDistance(90.0)
                         .aggregateScoreResults(false)
                         .samplePercentage(25)
                         .build()
 
         val frm = FuzzyRowMatcher(config)
         val result = frm.fuzzyMatch()
-        println(result)
-        assert(true)
+        val viewName = "final_scores_${result.targetTimeStamp}"
+        val targetCount = getTargetCount(targetJndi, viewName)
+        val rowSample = getFirstRowFromTarget(targetJndi, viewName).joinToString()
+        val rowHash = DigestUtils.md5Hex(rowSample).toUpperCase()
+
+        assert(result.algos == expectedReport.algos)
+        assert(result.comparisonCount == expectedReport.comparisonCount)
+        assert(result.duplicateCount == expectedReport.duplicateCount)
+        assert(result.matchCount == expectedReport.matchCount)
+        assert(result.rowCount == expectedReport.rowCount)
+
+        assert(targetCount == 1L)
+        assert(rowHash == "CB90E543EE9DDB05DA2A543F0CDCBF1A")
     }
  }
