@@ -1,13 +1,13 @@
 CREATE TABLE json_data_**TIMESTAMP** (
-	id	INTEGER NOT NULL,
+	id	TEXT NOT NULL,
 	json_row	TEXT NOT NULL,
 	PRIMARY KEY(id)
 );
 
 CREATE TABLE scores_**TIMESTAMP** (
-	id	INTEGER NOT NULL,
-	json_data1_row_id	INTEGER NOT NULL,
-	json_data2_row_id	INTEGER NOT NULL,
+	id	TEXT NOT NULL,
+	json_data1_row_id	TEXT NOT NULL,
+	json_data2_row_id	TEXT NOT NULL,
 	jaro_dist_score	REAL NULL,
 	levenshtein_distance_score	INTEGER NULL,
 	hamming_distance_score	INTEGER NULL,

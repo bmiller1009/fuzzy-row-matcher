@@ -21,6 +21,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.RuntimeException
 import java.sql.ResultSet
+import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -101,7 +102,7 @@ class FuzzyRowMatcherProducer(
                         val currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
                         val currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                        val jsonRecordCurrent = JsonRecord(rowCount, JSONObject(currentRsMap).toString())
+                        val jsonRecordCurrent = JsonRecord(UUID.randomUUID().toString(), JSONObject(currentRsMap).toString())
 
                         if (firstPass)
                             jsonRecords.add(jsonRecordCurrent)
@@ -117,7 +118,7 @@ class FuzzyRowMatcherProducer(
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                            val jsonRecordRow = JsonRecord(rowCount, JSONObject(rowRsMap).toString())
+                            val jsonRecordRow = JsonRecord(UUID.randomUUID().toString(), JSONObject(rowRsMap).toString())
 
                             if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
@@ -152,7 +153,7 @@ class FuzzyRowMatcherProducer(
                                     if (qualifies) {
                                         val scores = bitVector.map { bv -> bv.algoType to bv.score }.toMap()
                                         scoreCount += 1
-                                        ScoreRecord(scoreCount, jsonRecordCurrent.id, jsonRecordRow.id, scores)
+                                        ScoreRecord(UUID.randomUUID().toString(), jsonRecordCurrent.id, jsonRecordRow.id, scores)
                                     } else {
                                         null
                                     }
