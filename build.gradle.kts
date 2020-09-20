@@ -17,11 +17,9 @@ plugins {
     id("org.jetbrains.dokka").version("0.10.0")
     id("net.researchgate.release").version("2.6.0")
     id("java-library")
-    id ("com.github.johnrengelman.shadow").version( "5.1.0")
-    id ("distribution")
-    // Apply the application plugin to add support for building a CLI application.
-    application
-    java
+    id("com.bmuschko.nexus").version("2.3.1")
+    id("io.codearte.nexus-staging").version("0.21.2")
+    id("de.marcphilipp.nexus-publish").version("0.3.0")
 }
 
 group = "org.bradfordmiller"
@@ -105,16 +103,89 @@ tasks.matching{it.name != "set-defaults"}.forEach {t ->
 }
 
 tasks {
+
+    "publish" {
+        dependsOn("set-defaults")
+
+        doFirst {
+            println("Defaults are set. Current software version is $version")
+        }
+    }
+
     val dokka by getting(DokkaTask::class) {
         outputFormat = "html"
         outputDirectory = "$buildDir/dokka"
     }
 }
 
-application {
-    // Define the main class for the application.
-    mainClassName = "org.bradfordmiller.fuzzymatcher.DriverKt"
+nexusStaging {
+    packageGroup = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
+}
 
-    group = "org.bradfordmiller.fuzzymatcher"
-    version = "$version"
+tasks.register<Jar>("sourcesJars") {
+    from(sourceSets.main.get().allJava)
+    archiveClassifier.set("sources")
+}
+
+tasks.register<Jar>("javadocJars") {
+    from(tasks.javadoc)
+    archiveClassifier.set("javadoc")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+
+            tasks.matching{it.name != "set-defaults"}.forEach {t ->
+                println("Found Task: " + t.name)
+                t.dependsOn("set-defaults")
+            }
+
+            pom {
+                name.set("fuzzy-row-matcher")
+                description.set("Framework for finding similar rows in a JDBC source")
+                url.set("https://github.com/bmiller1009/fuzzy-row-matcher")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("bmiller1009")
+                        name.set("Bradford Miller")
+                        email.set("bfmtemple2003@gmail.com")
+                    }
+                }
+                scm {
+                    connection.set("scm:git@github.com:bmiller1009/fuzzy-row-matcher.git")
+                    developerConnection.set("scm:git:ssh://github.com/fuzzy-row-matcher.git")
+                    url.set("git@github.com:bmiller1009/fuzzy-row-matcher.git/")
+                }
+            }
+
+            from(components["java"])
+            artifact(tasks["sourcesJars"])
+            artifact(tasks["javadocJars"])
+        }
+    }
+}
+
+signing {
+    sign(publishing.publications["mavenJava"])
+}
+
+val uname: String? by project
+val pwd: String? by project
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            username.set(uname)
+            password.set(pwd)
+        }
+    }
+    //val duration: java.time.Duration? = Duration.ofSeconds(900)
+    clientTimeout.set(Duration.ofSeconds(900))
 }
