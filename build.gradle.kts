@@ -83,7 +83,6 @@ dependencies {
     implementation("org.mybatis", "mybatis", "3.5.5")
     implementation("org.xerial", "sqlite-jdbc","3.32.3.2")
     implementation("org.apache.commons", "commons-math3", "3.6.1")
-    implementation("commons-io", "commons-io", "2.6")
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
@@ -187,12 +186,4 @@ nexusPublishing {
     }
     //val duration: java.time.Duration? = Duration.ofSeconds(900)
     clientTimeout.set(Duration.ofSeconds(900))
-}
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions {
-    jvmTarget = "1.8"
-}
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.kotlinOptions {
-    jvmTarget = "1.8"
 }
