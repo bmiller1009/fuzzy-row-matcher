@@ -210,14 +210,6 @@ Another optimization the engine contains is in regards to string length differen
 on the _**Config**_ object
 In this case, the engine will not perform similarity comparisons on strings which differ in length by more than **50 percent**.
 
-### Sampling the data
-Fuzzy Matcher can also be configured to run on a partial row set. Using the method 
-```kotlin
-.samplePercentage(25) 
-```
-on the _**Config**_ object
-for example, will only run comparisons on **25 percent** of the data.
-
 ### Persisting the score results
 Thus far we have only seen examples of the Fuzzy Matcher aggregating information about statistics and matches, now we will see how to persist the results of the Fuzzy Match run.  The API has a setting for a target JNDI location as seen here:
 ```kotlin
@@ -319,7 +311,6 @@ val config =
             .strLenDeltaPct(50.0)
             .aggregateScoreResults(false)
             .ignoreDupes(true)
-            .samplePercentage(25)
             .build()
 
     val frm = FuzzyRowMatcher(config)

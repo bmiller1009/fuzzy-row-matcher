@@ -50,7 +50,6 @@ class FuzzyRowMatcherProducer(
         val aggregateResults = config.aggregateScoreResults
         val ignoreDupes = config.ignoreDupes
         val commitSize = config.dbCommitSize
-        val offset = if(config.samplePercentage == 1) 0 else config.samplePercentage
         val targetJndi = config.targetJndi
         val persistData = targetJndi != null
 
@@ -110,11 +109,6 @@ class FuzzyRowMatcherProducer(
                         rowCount += 1
                         while (rs.next()) {
 
-                            if(offset != 0) {
-                                rowCount += offset
-                                rs.absolute(rowCount.toInt())
-                            }
-
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
@@ -165,8 +159,6 @@ class FuzzyRowMatcherProducer(
                             if (persistData && (jsonRecords.size % commitSize == 0L)) {
                                 loadRecords(jsonRecords, scoreRecords)
                             }
-                            if(offset == 0)
-                                rowCount += 1
                         }
                         firstPass = false
                         rowIndex += 1
