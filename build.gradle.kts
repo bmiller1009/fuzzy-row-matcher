@@ -10,16 +10,18 @@ import java.util.Properties
 import java.io.File
 import java.time.Duration
 import org.apache.commons.io.FileUtils
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     // Apply the Kotlin JVM plugin to add support for Kotlin on the JVM.
-    id("org.jetbrains.kotlin.jvm").version("1.3.72")
+    //id("org.jetbrains.kotlin.jvm").version("1.3.72")
     id("org.jetbrains.dokka").version("0.10.0")
     id("net.researchgate.release").version("2.6.0")
     id("java-library")
     id("com.bmuschko.nexus").version("2.3.1")
     id("io.codearte.nexus-staging").version("0.21.2")
     id("de.marcphilipp.nexus-publish").version("0.3.0")
+    kotlin("jvm") version "1.4.10"
 }
 
 group = "org.bradfordmiller"
@@ -85,6 +87,7 @@ dependencies {
     implementation("org.mybatis", "mybatis", "3.5.5")
     implementation("org.xerial", "sqlite-jdbc","3.32.3.2")
     implementation("org.apache.commons", "commons-math3", "3.6.1")
+    implementation("commons-io", "commons-io", "2.6")
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     api("org.bradfordmiller", "simplejndiutils", "0.0.10") {
@@ -188,4 +191,12 @@ nexusPublishing {
     }
     //val duration: java.time.Duration? = Duration.ofSeconds(900)
     clientTimeout.set(Duration.ofSeconds(900))
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }
