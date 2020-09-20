@@ -4,17 +4,13 @@
  * This generated file contains a sample Kotlin application project to get you started.
  */
 import org.jetbrains.dokka.gradle.DokkaTask
-import groovy.lang.Closure
-import org.jetbrains.kotlin.gradle.utils.loadPropertyFromResources
 import java.util.Properties
 import java.io.File
 import java.time.Duration
-import org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     // Apply the Kotlin JVM plugin to add support for Kotlin on the JVM.
-    //id("org.jetbrains.kotlin.jvm").version("1.3.72")
     id("org.jetbrains.dokka").version("0.10.0")
     id("net.researchgate.release").version("2.6.0")
     id("java-library")
