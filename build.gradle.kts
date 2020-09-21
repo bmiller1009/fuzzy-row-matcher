@@ -116,9 +116,9 @@ tasks {
     }
 }
 
-nexusStaging {
+/*nexusStaging {
     stagingProfileId = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
-}
+}*/
 
 tasks.register<Jar>("sourcesJars") {
     from(sourceSets.main.get().allJava)
@@ -185,5 +185,5 @@ nexusPublishing {
         }
     }
     //val duration: java.time.Duration? = Duration.ofSeconds(900)
-    //clientTimeout.set(Duration.ofSeconds(900))
+    clientTimeout.set(Duration.ofSeconds(900))
 }
