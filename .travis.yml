@@ -9,4 +9,4 @@ before_install:
   - gradle -v
   - chmod +rw src/test/resources/data/outputData
 script:
-  - ./gradlew clean test build
+  - ./gradle clean test build
