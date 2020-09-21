@@ -185,5 +185,5 @@ nexusPublishing {
         }
     }
     //val duration: java.time.Duration? = Duration.ofSeconds(900)
-    clientTimeout.set(Duration.ofSeconds(900))
+    //clientTimeout.set(Duration.ofSeconds(900))
 }
