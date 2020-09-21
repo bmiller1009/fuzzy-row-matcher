@@ -7,4 +7,4 @@ before_install:
   - chmod +x gradle/wrapper/gradle-wrapper.jar
   - chmod +rw src/test/resources/data/outputData
 script:
-  - ./gradle clean test build
+  - ./gradlew clean test build
