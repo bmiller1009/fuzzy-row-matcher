@@ -116,9 +116,9 @@ tasks {
     }
 }
 
-/*nexusStaging {
-    stagingProfileId = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
-}*/
+nexusStaging {
+    packageGroup = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
+}
 
 tasks.register<Jar>("sourcesJars") {
     from(sourceSets.main.get().allJava)
