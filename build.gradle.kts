@@ -15,7 +15,7 @@ plugins {
     id("net.researchgate.release").version("2.6.0")
     id("java-library")
     id("com.bmuschko.nexus").version("2.3.1")
-    id("io.codearte.nexus-staging").version("0.21.2")
+    id("io.codearte.nexus-staging").version("0.22.0")
     id("de.marcphilipp.nexus-publish").version("0.3.0")
     kotlin("jvm") version "1.4.10"
 }
@@ -117,7 +117,7 @@ tasks {
 }
 
 nexusStaging {
-    packageGroup = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
+    stagingProfileId = "org.bradfordmiller" //optional if packageGroup == project.getGroup()
 }
 
 tasks.register<Jar>("sourcesJars") {
