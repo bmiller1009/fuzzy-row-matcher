@@ -1,6 +1,7 @@
 package org.bradfordmiller.fuzzyrowmatcher.db
 
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import org.apache.ibatis.javassist.NotFoundException
 import org.apache.ibatis.jdbc.RuntimeSqlException
 import org.apache.ibatis.jdbc.ScriptRunner
@@ -10,6 +11,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.sql.Connection
 import java.io.StringReader
+import java.nio.charset.StandardCharsets
 
 class SqlRunner {
     companion object {
@@ -22,12 +24,11 @@ class SqlRunner {
             val formattedSql =
                     when (vendor) {
                         "sqlite" -> {
-                            val resource = classLoader.getResource("dbscripts/bootstrap_sqlite.sql")
-                            val file = File(resource.file)
-                            val content = FileUtils.readFileToString(file, "UTF-8")
                             val stmt = conn.createStatement()
                             stmt.executeUpdate("PRAGMA foreign_keys = ON;")
-                            content
+                            classLoader.getResourceAsStream("dbscripts/bootstrap_sqlite.sql").use {`is` ->
+                                IOUtils.toString(`is`, StandardCharsets.UTF_8.name())
+                            }
                         }
                         else -> throw NotFoundException("Database vendor not recognized.")
                     }
