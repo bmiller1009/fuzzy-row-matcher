@@ -17,11 +17,14 @@ class SqlRunner {
 
         private fun prepScript(conn: Connection, timestamp: String): String {
             val vendor = conn.metaData.databaseProductName.toLowerCase()
-            val fileName = "src/main/resources/dbscripts/bootstrap_"
+            val classLoader = this.javaClass.classLoader
+
             val formattedSql =
                     when (vendor) {
                         "sqlite" -> {
-                            val content = FileUtils.readFileToString(File("${fileName}sqlite.sql"), "UTF-8")
+                            val resource = classLoader.getResource("dbscripts/bootstrap_sqlite.sql")
+                            val file = File(resource.file)
+                            val content = FileUtils.readFileToString(file, "UTF-8")
                             val stmt = conn.createStatement()
                             stmt.executeUpdate("PRAGMA foreign_keys = ON;")
                             content
