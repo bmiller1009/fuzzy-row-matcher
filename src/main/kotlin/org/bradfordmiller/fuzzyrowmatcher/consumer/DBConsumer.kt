@@ -17,6 +17,10 @@ class DBConsumer(
         val logger: Logger = LoggerFactory.getLogger(DBConsumer::class.java)
     }
 
+    init {
+        logger.info("${this.javaClass.canonicalName}:: Initializing target consumer")
+    }
+
     val sqlPersistor = SqlPersistor(timestamp)
     /**
      * pulls/processes the first message off of the [dataQueue] and returns whether or not the message is empty
@@ -24,13 +28,17 @@ class DBConsumer(
     private fun processFirstMessage(): Boolean {
         return try {
             val firstMsg = producerQueue.take()
-            logger.info("${this.javaClass.canonicalName}:: Initializing target consumer")
-            sqlPersistor.writeRecords(firstMsg, targetJndi)
-            logger.info("${this.javaClass.canonicalName}:: First data packet written to target.")
-            return true
+            return if(firstMsg.isEmpty()) {
+                logger.warn("First message is empty, an error has occurred in the fuzzy match process. Check the log for details.")
+                true
+            } else {
+                sqlPersistor.writeRecords(firstMsg, targetJndi)
+                logger.info("${this.javaClass.canonicalName}:: First data packet written to target.")
+                false
+            }
         } catch(sqlEx: SQLException) {
             logger.error("Error persisting first message: ${sqlEx.message}")
-            false
+            true
         }
     }
 
@@ -39,7 +47,8 @@ class DBConsumer(
         while(!done) {
             val data = producerQueue.take()
             //Empty records hit, means stream is complete
-            if(data.jsonRecords.isEmpty() && data.scores.isEmpty()) {
+            if(data.isEmpty()) {
+                logger.info("Received empty data object. Terminating data consumer thread.")
                 done = true
             } else {
                 sqlPersistor.writeRecords(data, targetJndi)

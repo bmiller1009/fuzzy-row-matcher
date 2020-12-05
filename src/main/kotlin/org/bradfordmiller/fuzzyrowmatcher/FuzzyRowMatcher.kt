@@ -173,6 +173,8 @@ class FuzzyRowMatcherProducer(
                 }
             }
         }
+        //Give an empty array to the producer queue to indicate the run is over
+        loadRecords(jsonRecords, scoreRecords!!)
 
         logger.info("Calculating Statistics for the run.")
 
