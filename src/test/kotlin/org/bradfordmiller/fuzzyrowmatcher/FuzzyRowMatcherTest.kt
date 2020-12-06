@@ -245,7 +245,7 @@ class FuzzyRowMatcherTest {
         assert(result.matchCount == expectedReport.matchCount)
         assert(result.rowCount == expectedReport.rowCount)
 
-        assert(targetCount == 1L)
+        assert(targetCount == 39L)
         assert(rowHash == "CB90E543EE9DDB05DA2A543F0CDCBF1A")
     }
  }

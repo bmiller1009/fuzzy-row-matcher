@@ -54,7 +54,7 @@ class FuzzyRowMatcherProducer(
         val persistData = targetJndi != null
 
         val jsonRecords = mutableListOf<JsonRecord>()
-        val scoreRecords = mutableListOf<ScoreRecord?>()
+        val scoreRecords = mutableListOf<ScoreRecord>()
         val bitVectorList = mutableListOf<List<AlgoResult>>()
 
         val algoResults = mutableMapOf<AlgoType, MutableList<Number>>(
@@ -73,9 +73,9 @@ class FuzzyRowMatcherProducer(
         var scoreCount = 0L
         var rowCount = 1L
 
-        fun loadRecords(jsonRecords: MutableList<JsonRecord>, scoreRecords: MutableList<ScoreRecord?>) {
+        fun loadRecords(jsonRecords: MutableList<JsonRecord>, scoreRecords: MutableList<ScoreRecord>) {
             val copyJson = mutableListOf<JsonRecord>()
-            val copyScores = mutableListOf<ScoreRecord?>()
+            val copyScores = mutableListOf<ScoreRecord>()
 
             copyJson.addAll(jsonRecords)
             copyScores.addAll(scoreRecords)
@@ -101,7 +101,7 @@ class FuzzyRowMatcherProducer(
                         val currentRowData = SqlUtils.stringifyRow(rs, hashColumns)
                         val currentRowHash = DigestUtils.md5Hex(currentRowData).toUpperCase()
                         val currentRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                        val jsonRecordCurrent = JsonRecord(UUID.randomUUID().toString(), JSONObject(currentRsMap).toString())
+                        val jsonRecordCurrent = JsonRecord(currentRowHash, JSONObject(currentRsMap).toString())
 
                         if (firstPass)
                             jsonRecords.add(jsonRecordCurrent)
@@ -112,7 +112,7 @@ class FuzzyRowMatcherProducer(
                             val rowData = SqlUtils.stringifyRow(rs, hashColumns)
                             val rowHash = DigestUtils.md5Hex(rowData).toUpperCase()
                             val rowRsMap = SqlUtils.getMapFromRs(rs, rsColumns)
-                            val jsonRecordRow = JsonRecord(UUID.randomUUID().toString(), JSONObject(rowRsMap).toString())
+                            val jsonRecordRow = JsonRecord(rowHash, JSONObject(rowRsMap).toString())
 
                             if (ignoreDupes && currentRowHash == rowHash) {
                                 //Duplicate row found, skip everything else
@@ -134,27 +134,23 @@ class FuzzyRowMatcherProducer(
                                         val score = algo.applyAlgo(rowData, currentRowData)
                                         AlgoResult(algo.algoType, algo.qualifyThreshold(score), score, currentRowData, rowData)
                                     }
-
                             //Now determine if this match qualifies
                             val qualifies =
                                     if (aggregateResults) {
-                                        bitVector.filter { bv -> !bv.qualifies }.isEmpty()
+                                        bitVector.none { bv -> !bv.qualifies }
                                     } else {
-                                        bitVector.filter { bv -> bv.qualifies }.isNotEmpty()
+                                        bitVector.any { bv -> bv.qualifies }
                                     }
                             //Publish records to queue
-                            val scoreRecord =
-                                    if (qualifies) {
-                                        val scores = bitVector.map { bv -> bv.algoType to bv.score }.toMap()
-                                        scoreCount += 1
-                                        ScoreRecord(UUID.randomUUID().toString(), jsonRecordCurrent.id, jsonRecordRow.id, scores)
-                                    } else {
-                                        null
-                                    }
+                            if (qualifies) {
+                                val scores = bitVector.map { bv -> bv.algoType to bv.score }.toMap()
+                                scoreCount += 1
+                                val sr = ScoreRecord(UUID.randomUUID().toString(), currentRowHash, rowHash, scores)
+                                scoreRecords.add(sr)
+                            }
 
                             bitVectorList += bitVector
 
-                            scoreRecords.add(scoreRecord)
                             comparisonCount += algoCount
                             if (persistData && (jsonRecords.size % commitSize == 0L)) {
                                 loadRecords(jsonRecords, scoreRecords)
@@ -174,7 +170,7 @@ class FuzzyRowMatcherProducer(
             }
         }
         //Give an empty array to the producer queue to indicate the run is over
-        loadRecords(jsonRecords, scoreRecords!!)
+        loadRecords(jsonRecords, scoreRecords)
 
         logger.info("Calculating Statistics for the run.")
 
