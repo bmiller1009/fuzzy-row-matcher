@@ -1,0 +1,10 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+
+org.bradfordmiller.fuzzyrowmatcher
+org.bradfordmiller.fuzzyrowmatcher.algos
+org.bradfordmiller.fuzzyrowmatcher.config
+org.bradfordmiller.fuzzyrowmatcher.consumer
+org.bradfordmiller.fuzzyrowmatcher.db
+org.bradfordmiller.fuzzyrowmatcher.utils
+
