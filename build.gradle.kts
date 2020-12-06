@@ -11,13 +11,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     // Apply the Kotlin JVM plugin to add support for Kotlin on the JVM.
-    id("org.jetbrains.dokka").version("0.10.0")
     id("net.researchgate.release").version("2.6.0")
     id("java-library")
     id("com.bmuschko.nexus").version("2.3.1")
     id("io.codearte.nexus-staging").version("0.22.0")
     id("de.marcphilipp.nexus-publish").version("0.3.0")
-    kotlin("jvm") version "1.4.10"
+    kotlin("jvm") version "1.4.20"
+    id("org.jetbrains.dokka") version "1.4.20"
 }
 
 group = "org.bradfordmiller"
@@ -108,11 +108,6 @@ tasks {
         doFirst {
             println("Defaults are set. Current software version is $version")
         }
-    }
-
-    val dokka by getting(DokkaTask::class) {
-        outputFormat = "html"
-        outputDirectory = "$buildDir/dokka"
     }
 }
 
