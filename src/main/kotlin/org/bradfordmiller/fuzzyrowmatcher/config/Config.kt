@@ -4,6 +4,9 @@ import org.apache.commons.lang.NullArgumentException
 import org.bradfordmiller.fuzzyrowmatcher.algos.*
 import org.slf4j.LoggerFactory
 
+/**
+ * Defines output information for csv target data based on the [jndiName] name and jndi [context]
+ */
 interface SimpleJndi {
     val jndiName: String
     val context: String
@@ -34,11 +37,25 @@ data class SourceJndi(
     }
 }
 
+/**
+ * Defines output information for csv target data based on the [jndiName] name and jndi [context]
+ */
 data class TargetJndi(
     override val jndiName: String,
     override val context: String
 ): SimpleJndi
 
+/**
+ * Configuration for a fuzzy match process
+ *
+ * @property sourceJndi a [SourceJndi] object
+ * @property targetJndi a [TargetJndi] object
+ * @property strLenDeltaPct determines whether two strings of differing lengths will be compared by setting a max difference between the string lengths
+ * @property aggregateScoreResults determines whether qualfication of two strings is based on ALL algorithms passing threshold or ANY. If set to true, then ALL algorithms must pass before qualification
+ * @property ignoreDupes determines whether exact duplicate strings (based off of MD5 hashes) are scored or if they are skipped
+ * @property dbCommitSize defines how often data is persisted to the output if a [targetJndi] is defined.  The default is a commitSize of 500, which means every time 500 rows are collected they will be persisted to the [targetJndi]
+ * @property algoSet the list of algorithms of type [Algo] that will be run against the data set
+ */
 class Config private constructor(
     val sourceJndi: SourceJndi,
     val targetJndi: TargetJndi?,
@@ -67,19 +84,69 @@ class Config private constructor(
             private val logger = LoggerFactory.getLogger(ConfigBuilder::class.java)
         }
 
+        /**
+         * sets the [sourceJndi] for the builder object
+         */
         fun sourceJndi(sourceJndi: SourceJndi) = apply {this.sourceJndi = sourceJndi}
+
+        /**
+         * sets the [targetJndi] for the builder object
+         */
         fun targetJndi(targetJndi: TargetJndi) = apply {this.targetJndi = targetJndi}
+
+        /**
+         * sets the [threshold] value for the Jaro Winkler string distance algorithm
+         */
         fun applyJaroDistance(threshold: Double) = apply {this.jaroDistance = JaroDistanceAlgo(threshold) as Algo<Number> }
+
+        /**
+         * sets the [threshold] value for the Cosine string distance algorithm
+         */
         fun applyCosineDistance(threshold: Double) = apply{this.cosineDistance = CosineDistanceAlgo(threshold) as Algo<Number>}
+
+        /**
+         * sets the [threshold] value for the Hamming string distance algorithm
+         */
         fun applyHammingDistance(threshold: Int) = apply{this.hammingDistance = HammingDistanceAlgo(threshold) as Algo<Number>}
+
+        /**
+         * sets the [threshold] value for the Jaccard string distance algorithm
+         */
         fun applyJaccardDistance(threshold: Double) = apply{this.jaccardDistance = JaccardDistanceAlgo(threshold) as Algo<Number>}
+
+        /**
+         * sets the [threshold] value for the Levenshtein string distance algorithm
+         */
         fun applyLevenshtein(threshold: Int) = apply {this.levenshteinDistance = LevenshteinDistanceAlgo(threshold) as Algo<Number>}
+
+        /**
+         * sets the [threshold] value for the Fuzzy Score string distance algorithm
+         */
         fun applyFuzzyScore(threshold: Int) = apply {this.fuzzyScore = FuzzyScoreSimilarAlgo(threshold) as Algo<Number> }
+
+        /**
+         * sets the [strLenDeltaPct] value which determines how different in length two strings can be before a string distance comparison is ignored
+         */
         fun strLenDeltaPct(strLenDeltaPct: Double) = apply {this.strLenDeltaPct = strLenDeltaPct}
+
+        /**
+         * sets the [aggregateScoreResults] which determines whether ALL algorithms qualify a string comparison or ANY algorithms qualify
+         */
         fun aggregateScoreResults(aggregateScoreResults: Boolean) = apply{this.aggregateScoreResults = aggregateScoreResults}
+
+        /**
+         * sets [ignoreDupes] which sets whether the fuzzy match process will score duplicate strings (by MD5 hash) or skip them
+         */
         fun ignoreDupes(ignoreDupes: Boolean) = apply{this.ignoreDupes = ignoreDupes}
+
+        /**
+         * sets [dbCommitSize] which determines how often rows are commited to the target [targetJndi]
+         */
         fun dbCommitSize(dbCommitSize: Long) = apply {this.dbCommitSize = dbCommitSize}
 
+        /**
+         * returns [Config] object with builder options set
+         */
         fun build(): Config {
 
             val algoSet = HashSet<Algo<Number>>()

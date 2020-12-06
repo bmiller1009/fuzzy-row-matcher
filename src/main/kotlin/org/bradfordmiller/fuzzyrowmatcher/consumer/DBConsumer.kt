@@ -8,6 +8,13 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.util.concurrent.ArrayBlockingQueue
 
+/**
+ * definition of a runnable database Consumer. Consumers are responsible for persisting data a JDBC compliant target
+ *
+ * @property producerQueue - queue where persistor receives data to persist
+ * @property targetJndi - the target JNDI location where data will be persisted to
+ * @property timestamp - the timestamp which will be suffixed on the name of all output tables in the [targetJndi]
+ */
 class DBConsumer(
         private val producerQueue: ArrayBlockingQueue<DbPayload>,
         private val targetJndi: TargetJndi,
@@ -23,7 +30,7 @@ class DBConsumer(
 
     val sqlPersistor = SqlPersistor(timestamp)
     /**
-     * pulls/processes the first message off of the [dataQueue] and returns whether or not the message is empty
+     * pulls/processes the first message off of the [producerQueue] and returns whether or not the message is empty
      */
     private fun processFirstMessage(): Boolean {
         return try {
@@ -42,6 +49,9 @@ class DBConsumer(
         }
     }
 
+    /**
+     * loops over the queue consuming messages until [doneFlag] is set to true, meaning the last message was empty
+     */
     private fun processQueueData(doneFlag: Boolean) {
         var done = doneFlag
         while(!done) {
@@ -56,6 +66,9 @@ class DBConsumer(
         }
     }
 
+    /**
+     * launches consumer as a runnable
+     */
     override fun run() {
         try {
             val complete = processFirstMessage()

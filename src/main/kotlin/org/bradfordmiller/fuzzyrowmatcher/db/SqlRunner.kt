@@ -11,10 +11,21 @@ import java.sql.Connection
 import java.io.StringReader
 import java.nio.charset.StandardCharsets
 
+/**
+ * runs sql scripts which scaffold out the output tables when a target JDBC endpoint is set
+ */
 class SqlRunner {
     companion object {
         val logger = LoggerFactory.getLogger(SqlRunner::class.java)
 
+        /**
+         * prepares the database script for running against the target JDBC endpoint
+         *
+         * @property conn the database connection the scripts will be run against
+         * @property timestamp the suffix string which will all output tables in the target JDBC will be appended with
+         *
+         * returns a fully runnable SQL script with all tokenized values populated
+         */
         private fun prepScript(conn: Connection, timestamp: String): String {
             val vendor = conn.metaData.databaseProductName.toLowerCase()
             val classLoader = this.javaClass.classLoader
@@ -33,6 +44,13 @@ class SqlRunner {
             return formattedSql.replace("**TIMESTAMP**", timestamp)
         }
 
+        /**
+         *  runs a SQL script against a specific [jndi] and [context]
+         *
+         *  @property timestamp suffix value for all tables in a particular run of the fuzzy matcher.
+         *
+         *  returns indicator for whether the script ran successfully or not
+         */
         fun runScript(jndi: String, context: String, timestamp: String): Boolean {
             return try {
                 JNDIUtils.getJndiConnection(jndi, context).use { c ->

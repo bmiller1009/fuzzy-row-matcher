@@ -7,6 +7,11 @@ import java.sql.SQLException
 import org.slf4j.LoggerFactory
 import java.sql.Types
 
+/**
+ * handles persisting data to a [TargetJndi]
+ *
+ * @property timestamp - all output tables for the [TargetJndi] will be suffixed with this value to avoid naming collisions
+ */
 class SqlPersistor(timestamp: String) {
 
     companion object {
@@ -18,6 +23,12 @@ class SqlPersistor(timestamp: String) {
     private val scoreInsert = "INSERT INTO scores_$timestamp VALUES ($params)"
     private val algos = AlgoType.values()
 
+    /**
+     * writes a [DbPayload] of data to a [TargetJndi]
+     *
+     * @property payload contains json records and scores to be persisted
+     * @property tj the target JDBC source to be written to
+     */
     fun writeRecords(payload: DbPayload, tj: TargetJndi) {
         JNDIUtils.getJndiConnection(tj.jndiName, tj.context).use { conn ->
             conn.autoCommit = false
@@ -76,7 +87,6 @@ class SqlPersistor(timestamp: String) {
                     }
                     pstScores.addBatch()
                 }
-
                 try {
                     pstJson.executeBatch()
                     pstScores.executeBatch()

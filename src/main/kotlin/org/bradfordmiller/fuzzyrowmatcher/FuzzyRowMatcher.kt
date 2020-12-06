@@ -25,11 +25,40 @@ import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.math.log
 
+/**
+ * stats for each algorithm in a fuzzy matcher run
+ *
+ * @property min the smallest value in the collection
+ * @property firstQuartile the first quartile value in the collection
+ * @property median the median value in the collection
+ * @property thirdQuartile the third quartile value in the collection
+ * @property max the max value in the collection
+ * @property mean the mean value in the collection
+ * @property stddeviation the standard deviation of the collection
+ */
 data class AlgoStats(val min: Number, val firstQuartile: Double, val median: Double, val thirdQuartile: Double, val max: Number, val mean: Double, val stddeviation: Double)
+
+/**
+ *  The summary report of a fuzzy matching operation
+ *
+ *  @property rowCount number of rows traversed on the source data
+ *  @property comparisonCount number of comparisons performed during the run
+ *  @property matchCount number of "fuzzy matches" found during the run
+ *  @property duplicateCount number of duplicate values found during the run
+ *  @property algos a key value pair of each algorithm [AlgoType] and the corresponding stats [AlgoStats]
+ *  @property targetTimeStamp the timestamp used on the target JDBC for suffixing all of the tables during the run
+ */
 data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>, val targetTimeStamp: String?)
 
+/**
+ * runs the fuzzy match process, calculates the statistics and publishes a report [FuzzyRowMatcherRpt]
+ *
+ * @property config [Config] builder object used to define the fuzzy match settings
+ * @property producerQueue data is published here for persistence to the target database if one is defined
+ * @property statsQueue statistics are published here for consumption by the main fuzzy match thread
+ * @property timestamp the timestamp used on the target JDBC for suffixing all of the tables during the run
+ */
 class FuzzyRowMatcherProducer(
    private val config: Config,
    private val producerQueue: ArrayBlockingQueue<DbPayload>?,
@@ -41,6 +70,9 @@ class FuzzyRowMatcherProducer(
         val logger = LoggerFactory.getLogger(FuzzyRowMatcherProducer::class.java)
     }
 
+    /**
+     * runs the fuzzy match process
+     */
     override fun run() {
         val ds = JNDIUtils.getDataSource(config.sourceJndi.jndiName, config.sourceJndi.context).left
         val hashColumns = config.sourceJndi.hashKeys
@@ -204,12 +236,22 @@ class FuzzyRowMatcherProducer(
     }
 }
 
+/**
+ * launches and coordinates all fuzzy matching components
+ *
+ * @property config - [Config] builder for all fuzzy match settings for a run
+ */
 class FuzzyRowMatcher(private val config: Config) {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(FuzzyRowMatcher::class.java)
     }
 
+    /**
+     * kicks off the fuzzy match components
+     *
+     * returns a [FuzzyRowMatcherRpt] when the run is complete
+     */
     fun fuzzyMatch(): FuzzyRowMatcherRpt {
 
         val statsQueue = ArrayBlockingQueue<FuzzyRowMatcherRpt>(100)
