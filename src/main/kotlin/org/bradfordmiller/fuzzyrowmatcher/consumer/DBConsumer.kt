@@ -9,9 +9,9 @@ import java.sql.SQLException
 import java.util.concurrent.ArrayBlockingQueue
 
 class DBConsumer(
-    val producerQueue: ArrayBlockingQueue<DbPayload>,
-    val targetJndi: TargetJndi,
-    timestamp: String
+        private val producerQueue: ArrayBlockingQueue<DbPayload>,
+        private val targetJndi: TargetJndi,
+        timestamp: String
 ): Runnable {
     companion object {
         val logger: Logger = LoggerFactory.getLogger(DBConsumer::class.java)

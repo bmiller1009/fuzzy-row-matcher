@@ -14,10 +14,10 @@ class SqlPersistor(timestamp: String) {
         val logger = LoggerFactory.getLogger(SqlPersistor::class.java)
     }
 
-    val params = (1..9).map{"?"}.joinToString()
-    val jsonInsert = "INSERT INTO json_data_$timestamp VALUES (?,?)"
-    val scoreInsert = "INSERT INTO scores_$timestamp VALUES ($params)"
-    val algos = AlgoType.values()
+    private val params = (1..9).map{"?"}.joinToString()
+    private val jsonInsert = "INSERT INTO json_data_$timestamp VALUES (?,?)"
+    private val scoreInsert = "INSERT INTO scores_$timestamp VALUES ($params)"
+    private val algos = AlgoType.values()
 
     fun writeRecords(payload: DbPayload, tj: TargetJndi) {
         JNDIUtils.getJndiConnection(tj.jndiName, tj.context).use {conn ->

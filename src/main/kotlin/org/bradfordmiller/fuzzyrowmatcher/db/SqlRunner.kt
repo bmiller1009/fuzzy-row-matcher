@@ -1,6 +1,5 @@
 package org.bradfordmiller.fuzzyrowmatcher.db
 
-import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.ibatis.javassist.NotFoundException
 import org.apache.ibatis.jdbc.RuntimeSqlException
@@ -8,7 +7,6 @@ import org.apache.ibatis.jdbc.ScriptRunner
 import org.bradfordmiller.simplejndiutils.JNDIUtils
 import org.slf4j.LoggerFactory
 import java.io.BufferedReader
-import java.io.File
 import java.sql.Connection
 import java.io.StringReader
 import java.nio.charset.StandardCharsets

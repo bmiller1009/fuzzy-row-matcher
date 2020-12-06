@@ -1,11 +1,8 @@
 package org.bradfordmiller.fuzzyrowmatcher.config
 
 import org.apache.commons.lang.NullArgumentException
-import org.apache.commons.text.similarity.JaroWinklerDistance
-import org.apache.commons.text.similarity.LevenshteinDistance
 import org.bradfordmiller.fuzzyrowmatcher.algos.*
 import org.slf4j.LoggerFactory
-import java.lang.IllegalArgumentException
 
 interface SimpleJndi {
     val jndiName: String
