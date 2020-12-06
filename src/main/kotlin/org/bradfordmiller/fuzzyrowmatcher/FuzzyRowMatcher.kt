@@ -25,6 +25,7 @@ import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.math.log
 
 data class AlgoStats(val min: Number, val firstQuartile: Double, val median: Double, val thirdQuartile: Double, val max: Number, val mean: Double, val stddeviation: Double)
 data class FuzzyRowMatcherRpt(val rowCount: Long, val comparisonCount: Long, val matchCount: Long, val duplicateCount: Long, val algos: Map<AlgoType, AlgoStats>, val targetTimeStamp: String?)
@@ -128,6 +129,10 @@ class FuzzyRowMatcherProducer(
 
                             if (firstPass)
                                 jsonRecords.add(jsonRecordRow)
+
+                            if(rowHash.equals("DEB91916388720331CAC5A8B41F0C12E") && currentRowHash.equals("B3E02FF3AFC5E2160C5FC95B200FD369")) {
+                                logger.info("HERE")
+                            }
 
                             val bitVector =
                                     algoSet.map { algo ->
