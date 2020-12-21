@@ -27,7 +27,7 @@ If you're using [Maven](maven.apache.org) simply specify the GAV coordinate belo
 <dependency>
   <groupId>org.bradfordmiller</groupId>
   <artifactId>fuzzy-row-matcher</artifactId>
-  <version>1.0.9</version>
+  <version>1.0.10</version>
 </dependency>
 ```
 
@@ -36,7 +36,7 @@ If you're using [Maven](maven.apache.org) simply specify the GAV coordinate belo
 Add this GAV coordinate to your SBT dependency list
 
 ```sbt
-libraryDependencies += "org.bradfordmiller" %% "fuzzy-row-matcher" % "1.0.9"
+libraryDependencies += "org.bradfordmiller" %% "fuzzy-row-matcher" % "1.0.10"
 ```
 
 #### Running with Gradle
@@ -47,7 +47,7 @@ Add this GAV coordinate to your Gradle dependencies section
 dependencies {
     ...
     ...
-    implementation 'org.bradfordmiller:fuzzy-row-matcher:1.0.9'
+    implementation 'org.bradfordmiller:fuzzy-row-matcher:1.0.10'
 }
 ```
 
