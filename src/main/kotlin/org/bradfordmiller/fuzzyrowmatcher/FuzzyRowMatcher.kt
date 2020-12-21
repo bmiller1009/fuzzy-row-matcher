@@ -162,10 +162,6 @@ class FuzzyRowMatcherProducer(
                             if (firstPass)
                                 jsonRecords.add(jsonRecordRow)
 
-                            if(rowHash.equals("DEB91916388720331CAC5A8B41F0C12E") && currentRowHash.equals("B3E02FF3AFC5E2160C5FC95B200FD369")) {
-                                logger.info("HERE")
-                            }
-
                             val bitVector =
                                     algoSet.map { algo ->
                                         val score = algo.applyAlgo(rowData, currentRowData)
