@@ -85,14 +85,19 @@ dependencies {
     implementation("org.apache.commons", "commons-math3", "3.6.1")
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    api("org.bradfordmiller", "simplejndiutils", "0.0.12") {
+    api("org.bradfordmiller", "simplejndiutils", "0.0.13") {
         isTransitive = true
     }
     api("commons-codec", "commons-codec","1.12")
-    api("org.bradfordmiller:sqlutils:0.0.3")
+    api("org.bradfordmiller:sqlutils:0.0.4")
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.5.1")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.matching{it.name != "set-defaults"}.forEach {t ->
